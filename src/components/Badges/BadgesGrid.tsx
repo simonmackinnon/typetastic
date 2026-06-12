@@ -1,5 +1,7 @@
+import { Award } from 'lucide-react';
 import { BADGES } from '../../data/badges';
 import { useProgress } from '../../context/ProgressContext';
+import BadgeIcon from '../icons/BadgeIcon';
 
 export default function BadgesGrid() {
   const { earnedBadges } = useProgress();
@@ -8,7 +10,9 @@ export default function BadgesGrid() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="text-center mb-10">
-        <h1 className="font-display text-5xl text-purple-700 mb-2">Badge Cabinet 🏅</h1>
+        <h1 className="font-display text-5xl text-purple-700 mb-2 flex items-center justify-center gap-3">
+          <Award size={44} className="text-purple-600" /> Badge Cabinet
+        </h1>
         <p className="font-body text-gray-500 text-lg">
           {earned.size} of {BADGES.length} badges earned — keep going!
         </p>
@@ -29,7 +33,7 @@ export default function BadgesGrid() {
                   : 'bg-gray-100 border-gray-200 grayscale opacity-50'}
               `}
             >
-              <div className="text-5xl">{isEarned ? badge.icon : '🔒'}</div>
+              <BadgeIcon badgeId={badge.id} earned={isEarned} size={56} />
               <div className={`font-display text-base ${isEarned ? 'text-white' : 'text-gray-400'}`}>
                 {badge.name}
               </div>

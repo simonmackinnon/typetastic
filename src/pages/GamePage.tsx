@@ -4,6 +4,7 @@ import { LEVEL_BY_ID } from '../data/levels';
 import { useProgress } from '../context/ProgressContext';
 import TypingGame from '../components/TypingGame/TypingGame';
 import StarRating from '../components/common/StarRating';
+import LevelTutorialModal from '../components/LevelTutorial/LevelTutorialModal';
 import type { TypingResult } from '../types';
 
 export default function GamePage() {
@@ -15,6 +16,22 @@ export default function GamePage() {
   const [exerciseIndex, setExerciseIndex] = useState(0);
   const [results, setResults] = useState<TypingResult[]>([]);
   const [finished, setFinished] = useState(false);
+
+  const [showTutorial, setShowTutorial] = useState(() => {
+    if (!levelId) return false;
+    const dismissed: string[] = JSON.parse(localStorage.getItem('tt_dismissed') ?? '[]');
+    return !dismissed.includes(levelId);
+  });
+
+  const handleTutorialDismiss = (permanent: boolean) => {
+    if (permanent && levelId) {
+      const dismissed: string[] = JSON.parse(localStorage.getItem('tt_dismissed') ?? '[]');
+      if (!dismissed.includes(levelId)) {
+        localStorage.setItem('tt_dismissed', JSON.stringify([...dismissed, levelId]));
+      }
+    }
+    setShowTutorial(false);
+  };
 
   const handleExerciseComplete = useCallback(
     async (result: TypingResult) => {
@@ -140,6 +157,15 @@ export default function GamePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-50 to-pink-50 py-8">
+      {/* Per-level tutorial overlay */}
+      {showTutorial && level && (
+        <LevelTutorialModal
+          level={level}
+          onContinue={() => handleTutorialDismiss(false)}
+          onDismiss={() => handleTutorialDismiss(true)}
+        />
+      )}
+
       {/* Progress bar */}
       <div className="max-w-3xl mx-auto px-4 mb-6">
         <div className="flex items-center justify-between mb-2">

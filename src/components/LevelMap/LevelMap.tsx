@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
+import { Lock } from 'lucide-react';
 import { LEVELS, ZONES } from '../../data/levels';
 import { useProgress } from '../../context/ProgressContext';
 import StarRating from '../common/StarRating';
+import ZoneIcon from '../icons/ZoneIcon';
 
 export default function LevelMap() {
   const { progress } = useProgress();
@@ -17,16 +19,17 @@ export default function LevelMap() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="text-center mb-10">
-        <h1 className="font-display text-5xl text-purple-700 mb-2">Level Map 🗺️</h1>
+        <h1 className="font-display text-5xl text-purple-700 mb-2">Level Map</h1>
         <p className="font-body text-gray-500 text-lg">Choose your adventure — complete each level to unlock the next!</p>
       </div>
 
-      {ZONES.map(({ zone, name, color, icon }) => {
+      {ZONES.map(({ zone, name, color }) => {
         const zoneLevels = LEVELS.filter((l) => l.zone === zone);
         return (
           <div key={zone} className={`mb-8 rounded-3xl border-2 p-6 ${color}`}>
-            <h2 className="font-display text-3xl text-gray-700 mb-4">
-              {icon} Zone {zone}: {name}
+            <h2 className="font-display text-3xl text-gray-700 mb-4 flex items-center gap-3">
+              <ZoneIcon zone={zone as 1|2|3|4|5|6} size={44} />
+              Zone {zone}: {name}
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {zoneLevels.map((level) => {
@@ -51,13 +54,13 @@ export default function LevelMap() {
                   >
                     {/* Lock icon for locked levels */}
                     {!unlocked && (
-                      <div className="absolute top-2 right-2 text-gray-400 text-sm">🔒</div>
+                      <div className="absolute top-2 right-2 text-gray-400">
+                        <Lock size={16} />
+                      </div>
                     )}
 
-                    {/* Level number */}
-                    <div className="font-display text-3xl text-white drop-shadow">
-                      {level.icon}
-                    </div>
+                    {/* Zone illustration */}
+                    <ZoneIcon zone={level.zone as 1|2|3|4|5|6} size={44} />
                     <div className="font-display text-sm text-white/90 drop-shadow">
                       Lvl {level.number}
                     </div>

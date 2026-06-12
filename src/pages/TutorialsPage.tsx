@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { Volume2, VolumeX } from 'lucide-react';
 import Keyboard from '../components/Keyboard/Keyboard';
+import TipIcon from '../components/icons/TipIcon';
+import type { TipType } from '../components/icons/TipIcon';
+import { useSpeech } from '../hooks/useSpeech';
 
 const HOME_ROW = [
   { key: 'a', finger: 'Left Pinky',   bgClass: 'bg-blue-400'   },
@@ -13,48 +17,94 @@ const HOME_ROW = [
   { key: ';', finger: 'Right Pinky',  bgClass: 'bg-teal-400'   },
 ];
 
-const TIPS = [
+const TIPS: Array<{
+  type: TipType;
+  title: string;
+  body: string;
+  gradient: string;
+}> = [
   {
-    icon: '🏠',
+    type: 'home-row',
     title: 'Start at Home Row',
-    body: 'Place your left fingers on A S D F and your right fingers on J K L ; — feel the little bumps on F and J, those are your anchors!',
-    gradient: 'from-blue-400 to-purple-500',
+    body: 'Place your left fingers on A S D F and right fingers on J K L ; — feel the bumps on F and J, those are your anchors!',
+    gradient: 'from-orange-400 to-amber-500',
   },
   {
-    icon: '👀',
+    type: 'no-peek',
     title: "Don't Peek!",
     body: "Try not to look at the keyboard. Keep your eyes on the screen. Your muscle memory will learn where every key lives over time.",
     gradient: 'from-pink-400 to-red-500',
   },
   {
-    icon: '🐢',
+    type: 'slow-wins',
     title: 'Slow Beats Fast',
     body: 'Accuracy first, speed second. Every correct keystroke teaches your fingers exactly where to go — rushing just builds bad habits.',
     gradient: 'from-green-400 to-emerald-500',
   },
   {
-    icon: '🔄',
+    type: 'return-home',
     title: 'Always Return Home',
     body: 'After pressing any key, bring your fingers back to the home row. This one habit is the whole secret to touch typing!',
-    gradient: 'from-orange-400 to-yellow-500',
+    gradient: 'from-blue-400 to-indigo-500',
   },
   {
-    icon: '🪑',
+    type: 'posture',
     title: 'Sit Up Straight',
-    body: 'Back straight, feet flat on the floor, wrists level with the keyboard. Good posture means you can type longer without getting tired.',
-    gradient: 'from-purple-400 to-pink-500',
+    body: 'Back straight, feet flat, wrists level. Good posture means you can type for longer without getting tired or sore.',
+    gradient: 'from-purple-400 to-violet-500',
   },
 ];
+
+function TipCard({ tip }: { tip: typeof TIPS[number] }) {
+  const { speak, stop, supported } = useSpeech();
+  const [speaking, setSpeaking] = useState(false);
+
+  const toggle = () => {
+    if (speaking) {
+      stop();
+      setSpeaking(false);
+    } else {
+      setSpeaking(true);
+      speak(`${tip.title}. ${tip.body}`);
+    }
+  };
+
+  useEffect(() => {
+    if (!speaking) return;
+    const id = setInterval(() => {
+      if (supported && !window.speechSynthesis.speaking) setSpeaking(false);
+    }, 300);
+    return () => clearInterval(id);
+  }, [speaking, supported]);
+
+  return (
+    <div className={`bg-gradient-to-br ${tip.gradient} rounded-3xl p-6 text-white shadow-lg hover:scale-105 transition-transform`}>
+      <div className="flex items-start justify-between mb-4">
+        <TipIcon type={tip.type} size={72} />
+        {supported && (
+          <button
+            onClick={toggle}
+            aria-label={speaking ? 'Stop' : 'Listen'}
+            className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors mt-1"
+          >
+            {speaking ? <VolumeX size={18} /> : <Volume2 size={18} />}
+          </button>
+        )}
+      </div>
+      <h3 className="font-display text-xl mb-2">{tip.title}</h3>
+      <p className="font-body text-sm text-white/90 leading-relaxed">{tip.body}</p>
+    </div>
+  );
+}
 
 function HomeRowDemo() {
   const [activeIdx, setActiveIdx] = useState(0);
   const [paused, setPaused] = useState(false);
+  const { speak, supported } = useSpeech();
 
   useEffect(() => {
     if (paused) return;
-    const id = setInterval(() => {
-      setActiveIdx((i) => (i + 1) % HOME_ROW.length);
-    }, 900);
+    const id = setInterval(() => setActiveIdx((i) => (i + 1) % HOME_ROW.length), 900);
     return () => clearInterval(id);
   }, [paused]);
 
@@ -62,17 +112,21 @@ function HomeRowDemo() {
 
   return (
     <div className="flex flex-col items-center gap-6">
-      {/* Big animated key + finger name */}
-      <div
-        className={`${active.bgClass} rounded-3xl px-10 py-5 text-white text-center shadow-lg transition-colors duration-300 min-w-[200px]`}
-      >
+      <div className={`${active.bgClass} rounded-3xl px-10 py-5 text-white text-center shadow-lg transition-colors duration-300 min-w-[200px]`}>
         <div className="font-display text-6xl mb-1">
           {active.key === ';' ? ';' : active.key.toUpperCase()}
         </div>
         <div className="font-body text-xl font-bold">{active.finger}</div>
+        {supported && (
+          <button
+            className="mt-2 text-xs text-white/70 hover:text-white underline"
+            onClick={() => speak(`${active.finger} finger presses ${active.key === ';' ? 'semicolon' : active.key.toUpperCase()}`)}
+          >
+            hear it
+          </button>
+        )}
       </div>
 
-      {/* Mini home row keyboard — click to pause on that key */}
       <div className="flex gap-2">
         {HOME_ROW.map((k, i) => (
           <button
@@ -91,7 +145,7 @@ function HomeRowDemo() {
       </div>
 
       <p className="font-body text-sm text-gray-500 text-center max-w-sm">
-        👆 Feel the bump on <strong>F</strong> and <strong>J</strong> — that ridge lets you find home row without looking!
+        Feel the bump on <strong>F</strong> and <strong>J</strong> — that ridge lets you find home row without looking!
       </p>
       <p className="font-body text-xs text-gray-400">Click any key to pause the animation</p>
     </div>
@@ -100,23 +154,24 @@ function HomeRowDemo() {
 
 function PostureGuide() {
   const items = [
-    { emoji: '🦴', label: 'Back straight' },
-    { emoji: '🦶', label: 'Feet flat on floor' },
-    { emoji: '💪', label: 'Elbows at 90°' },
-    { emoji: '🙌', label: 'Wrists level' },
-    { emoji: '👁️', label: 'Screen at eye level' },
-    { emoji: '😌', label: 'Relax your shoulders' },
+    { label: 'Back straight',       fill: '#818cf8' },
+    { label: 'Feet flat on floor',  fill: '#34d399' },
+    { label: 'Elbows at 90°',       fill: '#f472b6' },
+    { label: 'Wrists level',        fill: '#fb923c' },
+    { label: 'Screen at eye level', fill: '#60a5fa' },
+    { label: 'Relax your shoulders',fill: '#a78bfa' },
   ];
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-      {items.map(({ emoji, label }) => (
-        <div
-          key={label}
-          className="flex flex-col items-center gap-2 bg-gradient-to-br from-indigo-50 to-purple-50
-                     rounded-2xl p-4 hover:scale-105 transition-transform"
-        >
-          <span className="text-4xl">{emoji}</span>
+      {items.map(({ label, fill }) => (
+        <div key={label} className="flex flex-col items-center gap-3 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-5 hover:scale-105 transition-transform">
+          <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
+            <circle cx="26" cy="26" r="26" fill={fill} opacity="0.15" />
+            <circle cx="26" cy="26" r="20" fill={fill} opacity="0.25" />
+            <polyline points="16,26 22,32 36,18" stroke={fill} strokeWidth="3.5"
+              strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
           <span className="font-body text-sm font-bold text-gray-700 text-center">{label}</span>
         </div>
       ))}
@@ -129,7 +184,12 @@ export default function TutorialsPage() {
     <div className="min-h-screen bg-gradient-to-b from-purple-50 via-pink-50 to-yellow-50 pb-16">
       {/* Hero */}
       <div className="bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 py-14 text-center text-white px-4">
-        <div className="text-6xl mb-3">🎓</div>
+        <div className="flex justify-center mb-4">
+          <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+            <circle cx="40" cy="40" r="40" fill="rgba(255,255,255,0.2)" />
+            <text x="40" y="55" textAnchor="middle" fontSize="44" fontFamily="serif">🎓</text>
+          </svg>
+        </div>
         <h1 className="font-display text-5xl mb-3">How to Type</h1>
         <p className="font-body text-lg text-white/90 max-w-xl mx-auto">
           Typing is a superpower! Follow these tips and you'll be touch typing before you know it.
@@ -140,34 +200,24 @@ export default function TutorialsPage() {
 
         {/* Tip cards */}
         <section>
-          <h2 className="font-display text-3xl text-center text-purple-700 mb-8">Top Tips 💡</h2>
+          <h2 className="font-display text-3xl text-center text-purple-700 mb-8">Top Tips</h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {TIPS.map((tip) => (
-              <div
-                key={tip.title}
-                className={`bg-gradient-to-br ${tip.gradient} rounded-3xl p-6 text-white shadow-lg
-                            hover:scale-105 transition-transform cursor-default`}
-              >
-                <div className="text-5xl mb-3">{tip.icon}</div>
-                <h3 className="font-display text-xl mb-2">{tip.title}</h3>
-                <p className="font-body text-sm text-white/90 leading-relaxed">{tip.body}</p>
-              </div>
-            ))}
+            {TIPS.map((tip) => <TipCard key={tip.title} tip={tip} />)}
           </div>
         </section>
 
         {/* Home row demo */}
         <section className="bg-white rounded-3xl shadow-xl p-8">
-          <h2 className="font-display text-3xl text-center text-purple-700 mb-2">Home Row Demo 🏠</h2>
+          <h2 className="font-display text-3xl text-center text-purple-700 mb-2">Home Row Demo</h2>
           <p className="font-body text-center text-gray-500 mb-8">
             Watch which finger presses each home row key — then try it yourself!
           </p>
           <HomeRowDemo />
         </section>
 
-        {/* Finger zone keyboard map */}
+        {/* Finger zone map */}
         <section className="bg-white rounded-3xl shadow-xl p-8">
-          <h2 className="font-display text-3xl text-center text-purple-700 mb-2">Finger Zone Map 🗺️</h2>
+          <h2 className="font-display text-3xl text-center text-purple-700 mb-2">Finger Zone Map</h2>
           <p className="font-body text-center text-gray-500 mb-8">
             Every key belongs to exactly one finger. The colours show you which finger to use.
           </p>
@@ -178,25 +228,23 @@ export default function TutorialsPage() {
 
         {/* Posture guide */}
         <section className="bg-white rounded-3xl shadow-xl p-8">
-          <h2 className="font-display text-3xl text-center text-purple-700 mb-2">Posture Check 🪑</h2>
+          <h2 className="font-display text-3xl text-center text-purple-700 mb-2">Posture Check</h2>
           <p className="font-body text-center text-gray-500 mb-8">
-            Good posture makes typing easier and keeps you comfortable. Run through this checklist before you start!
+            Good posture makes typing easier and keeps you comfortable. Run through this checklist!
           </p>
           <PostureGuide />
         </section>
 
         {/* CTA */}
         <section className="text-center">
-          <h2 className="font-display text-3xl text-purple-700 mb-4">Ready to Practice? 🎮</h2>
-          <p className="font-body text-gray-500 mb-6">
-            Head to the Level Map and start with Level 1 — Home Base!
-          </p>
+          <h2 className="font-display text-3xl text-purple-700 mb-4">Ready to Practice?</h2>
+          <p className="font-body text-gray-500 mb-6">Head to the Level Map and start with Level 1 — Home Base!</p>
           <Link
             to="/map"
             className="inline-block px-10 py-4 bg-gradient-to-r from-purple-600 to-pink-500
                        text-white font-display text-2xl rounded-2xl shadow-lg hover:scale-105 transition-transform"
           >
-            🗺️ Go to Level Map
+            Go to Level Map
           </Link>
         </section>
 

@@ -2,21 +2,23 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useState } from 'react';
 import AuthModal from '../Auth/AuthModal';
+import { Map, GraduationCap, Award, User, Rocket, LogOut, LogIn, type LucideIcon } from 'lucide-react';
 
 export default function Header() {
   const { user, logout } = useAuth();
   const location = useLocation();
   const [showAuth, setShowAuth] = useState(false);
 
-  const navLink = (to: string, label: string, emoji: string) => (
+  const navLink = (to: string, label: string, Icon: LucideIcon) => (
     <Link
       to={to}
-      className={`flex items-center gap-1 px-3 py-1.5 rounded-full font-body font-bold text-sm transition-all
+      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full font-body font-bold text-sm transition-all
         ${location.pathname === to
           ? 'bg-white text-purple-700 shadow-md'
           : 'text-white hover:bg-white/20'}`}
     >
-      <span>{emoji}</span> {label}
+      <Icon size={15} />
+      {label}
     </Link>
   );
 
@@ -32,34 +34,34 @@ export default function Header() {
               className="w-10 h-10 drop-shadow-lg group-hover:animate-wiggle"
             />
             <span className="font-display text-2xl text-white drop-shadow">TypeTastic</span>
-            <span className="hidden sm:inline text-white/80 font-body text-xs mt-1">
-              🚀 Learn to Type!
+            <span className="hidden sm:inline-flex items-center gap-1 text-white/80 font-body text-xs mt-1">
+              <Rocket size={12} /> Learn to Type!
             </span>
           </Link>
 
           {/* Nav links */}
           <nav className="flex items-center gap-2">
-            {navLink('/map', 'Levels', '🗺️')}
-            {navLink('/tutorials', 'How to Type', '🎓')}
-            {navLink('/badges', 'Badges', '🏅')}
+            {navLink('/map', 'Levels', Map)}
+            {navLink('/tutorials', 'How to Type', GraduationCap)}
+            {navLink('/badges', 'Badges', Award)}
             {user ? (
               <div className="flex items-center gap-2">
-                <span className="text-white/80 font-body text-xs hidden sm:block">
-                  👤 {user.email.split('@')[0]}
+                <span className="text-white/80 font-body text-xs hidden sm:flex items-center gap-1">
+                  <User size={12} /> {user.email.split('@')[0]}
                 </span>
                 <button
                   onClick={logout}
-                  className="px-3 py-1.5 rounded-full font-body font-bold text-sm text-white hover:bg-white/20 transition-all"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full font-body font-bold text-sm text-white hover:bg-white/20 transition-all"
                 >
-                  Log out
+                  <LogOut size={14} /> Log out
                 </button>
               </div>
             ) : (
               <button
                 onClick={() => setShowAuth(true)}
-                className="px-4 py-1.5 rounded-full font-body font-bold text-sm bg-white text-purple-700 shadow hover:shadow-md transition-all"
+                className="flex items-center gap-1.5 px-4 py-1.5 rounded-full font-body font-bold text-sm bg-white text-purple-700 shadow hover:shadow-md transition-all"
               >
-                Log in
+                <LogIn size={14} /> Log in
               </button>
             )}
           </nav>

@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ProgressProvider } from './context/ProgressContext';
 import Header from './components/common/Header';
+import Footer from './components/common/Footer';
 import BadgeToast from './components/Badges/BadgeToast';
 import LandingPage from './pages/LandingPage';
 import LevelMap from './components/LevelMap/LevelMap';
@@ -11,9 +12,9 @@ import TutorialsPage from './pages/TutorialsPage';
 
 function AppShell() {
   return (
-    <div className="min-h-screen bg-gray-50 font-body">
+    <div className="min-h-screen bg-gray-50 font-body flex flex-col">
       <Header />
-      <main>
+      <main className="flex-1">
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/map" element={<LevelMap />} />
@@ -24,6 +25,7 @@ function AppShell() {
         </Routes>
       </main>
       <BadgeToast />
+      <Footer />
     </div>
   );
 }
