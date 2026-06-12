@@ -60,13 +60,14 @@ jobs:
         run: npm ci
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium firefox
+        run: npx playwright install --with-deps chromium
 
       - name: Build app (with stub env vars for tests)
         run: npm run build
         env:
-          COGNITO_USER_POOL_ID: test-pool-id
-          COGNITO_CLIENT_ID:    test-client-id
+          # Must match Cognito format (region_id) to pass SDK validation
+          COGNITO_USER_POOL_ID: ap-southeast-2_TESTPOOL00
+          COGNITO_CLIENT_ID:    testclientid1234567890ab
           API_BASE_URL:         http://localhost:3000
 
       - name: Run E2E tests
