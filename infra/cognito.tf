@@ -56,6 +56,4 @@ resource "aws_cognito_user_pool_client" "spa" {
     id_token      = "hours"
     refresh_token = "days"
   }
-
-  tags = { Project = local.project }
 }
