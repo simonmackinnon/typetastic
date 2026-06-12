@@ -1,0 +1,76 @@
+name: Deploy TypeTastic SPA
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Build and Deploy SPA
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm run test
+
+      - name: Build application
+        run: npm run build
+        env:
+          COGNITO_USER_POOL_ID: ${{ secrets.COGNITO_USER_POOL_ID }}
+          COGNITO_CLIENT_ID:    ${{ secrets.COGNITO_CLIENT_ID }}
+          API_BASE_URL:         ${{ secrets.API_BASE_URL }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-southeast-2
+
+      # Upload hashed assets (long cache) first
+      - name: Upload dist/ assets to S3
+        run: |
+          aws s3 sync dist/ s3://${{ secrets.AWS_S3_BUCKET_NAME }}/ \
+            --delete \
+            --exclude "index.html" \
+            --cache-control "public,max-age=31536000,immutable"
+
+      # Upload index.html with no-cache so new deployments are picked up immediately
+      - name: Upload index.html to S3
+        run: |
+          aws s3 cp dist/index.html s3://${{ secrets.AWS_S3_BUCKET_NAME }}/index.html \
+            --cache-control "no-store" \
+            --content-type "text/html"
+
+      # Upload public assets (logo, favicon) with moderate cache
+      - name: Upload public assets to S3
+        run: |
+          aws s3 sync public/ s3://${{ secrets.AWS_S3_BUCKET_NAME }}/ \
+            --exclude "*" \
+            --include "*.svg" \
+            --include "*.ico" \
+            --cache-control "public,max-age=86400"
+
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.AWS_CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"
+
+      - name: Print deployment URL
+        run: echo "✓ Deployed to https://typetastic.theclouddevopslearningblog.com"

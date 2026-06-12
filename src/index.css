@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Nunito', sans-serif;
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Custom scrollbar for the keyboard overflow area */
+  .keyboard-scroll::-webkit-scrollbar {
+    height: 6px;
+  }
+  .keyboard-scroll::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 3px;
+  }
+  .keyboard-scroll::-webkit-scrollbar-thumb {
+    background: #c4b5fd;
+    border-radius: 3px;
+  }
+}
+
+@layer components {
+  /* Home row bump indicator */
+  .home-bump::after {
+    content: '';
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 6px;
+    height: 2px;
+    background: currentColor;
+    border-radius: 1px;
+    opacity: 0.6;
+  }
+}
+
+@layer utilities {
+  /* Prevent text selection during typing games */
+  .no-select {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+}

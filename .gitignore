@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.env
+.env.local
+coverage/
+playwright-report/
+test-results/
+infra/.terraform/
+infra/.terraform.lock.hcl
+infra/.lambda_build/
+infra/terraform.tfstate
+infra/terraform.tfstate.backup
+infra/tfplan
+*.tfstate
+*.tfstate.backup
+.DS_Store
