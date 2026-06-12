@@ -121,6 +121,7 @@ export function useTypingGame(target: string, requiredAccuracy: number): UseTypi
     function handleKeyDown(e: KeyboardEvent) {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       if (e.key === 'Tab') { e.preventDefault(); return; }
+      if (e.key.length === 1) e.preventDefault(); // stop space/other keys scrolling the page
 
       const expected = state.target[state.currentIndex];
       if (e.key === expected) {

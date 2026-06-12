@@ -40,6 +40,7 @@ export default function Header() {
           {/* Nav links */}
           <nav className="flex items-center gap-2">
             {navLink('/map', 'Levels', '🗺️')}
+            {navLink('/tutorials', 'How to Type', '🎓')}
             {navLink('/badges', 'Badges', '🏅')}
             {user ? (
               <div className="flex items-center gap-2">

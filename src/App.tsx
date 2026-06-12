@@ -7,6 +7,7 @@ import LandingPage from './pages/LandingPage';
 import LevelMap from './components/LevelMap/LevelMap';
 import GamePage from './pages/GamePage';
 import BadgesGrid from './components/Badges/BadgesGrid';
+import TutorialsPage from './pages/TutorialsPage';
 
 function AppShell() {
   return (
@@ -18,6 +19,7 @@ function AppShell() {
           <Route path="/map" element={<LevelMap />} />
           <Route path="/play/:levelId" element={<GamePage />} />
           <Route path="/badges" element={<BadgesGrid />} />
+          <Route path="/tutorials" element={<TutorialsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
