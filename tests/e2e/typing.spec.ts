@@ -3,7 +3,8 @@ import { test, expect } from '@playwright/test';
 test.describe('Landing Page', () => {
   test('shows TypeTastic heading and play button', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: /TypeTastic/i })).toBeVisible();
+    // Use the h1 specifically — the page also has "Why kids love TypeTastic" h2
+    await expect(page.locator('h1').filter({ hasText: 'TypeTastic' })).toBeVisible();
     await expect(page.getByRole('link', { name: /play now/i })).toBeVisible();
   });
 
@@ -57,11 +58,10 @@ test.describe('Game Page', () => {
   test('shows countdown after clicking start', async ({ page }) => {
     await page.goto('/play/01');
     await page.getByRole('button', { name: /start/i }).click();
-    // Countdown should show 3, 2, or 1
-    const countdownVisible = await page.locator('text=3').isVisible()
-      || await page.locator('text=2').isVisible()
-      || await page.locator('text=1').isVisible();
-    expect(countdownVisible).toBe(true);
+    // Wait for the countdown number to appear in the dedicated countdown div
+    await expect(page.locator('.animate-pop').filter({ hasText: /^[123]$/ })).toBeVisible({
+      timeout: 4000,
+    });
   });
 
   test('shows virtual keyboard on level 1', async ({ page }) => {
@@ -71,7 +71,8 @@ test.describe('Game Page', () => {
 
   test('back button returns to map', async ({ page }) => {
     await page.goto('/play/01');
-    await page.getByRole('link', { name: /back/i }).click();
+    // The back button is a <button> element (uses navigate()), not a link
+    await page.getByRole('button', { name: /back/i }).click();
     await expect(page).toHaveURL(/\/map/);
   });
 });
@@ -99,7 +100,8 @@ test.describe('Badges Page', () => {
 test.describe('Navigation', () => {
   test('header logo navigates to home', async ({ page }) => {
     await page.goto('/map');
-    await page.getByRole('link', { name: /TypeTastic/i }).click();
+    // Use the header logo link specifically (it's the first TypeTastic link)
+    await page.locator('header').getByRole('link', { name: /TypeTastic/i }).click();
     await expect(page).toHaveURL('/');
   });
 
