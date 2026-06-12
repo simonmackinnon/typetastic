@@ -48,7 +48,7 @@ describe('AuthModal', () => {
   it('switches to register mode', () => {
     renderModal();
     fireEvent.click(screen.getByText('Sign up free!'));
-    expect(screen.getByText('Join TypeTastic!')).toBeInTheDocument();
+    expect(screen.getByText('Join TypeStar!')).toBeInTheDocument();
   });
 
   it('calls login on submit', async () => {

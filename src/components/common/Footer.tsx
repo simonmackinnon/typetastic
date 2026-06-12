@@ -16,7 +16,7 @@ export default function Footer() {
           </a>
         </span>
         <span className="text-gray-600 text-xs">
-          TypeTastic — Learn to type, one key at a time.
+          TypeStar — Learn to type, one key at a time.
         </span>
       </div>
     </footer>

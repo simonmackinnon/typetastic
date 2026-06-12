@@ -1,4 +1,4 @@
-name: Deploy TypeTastic SPA
+name: Deploy TypeStar SPA
 
 on:
   push:
@@ -73,4 +73,4 @@ jobs:
             --paths "/*"
 
       - name: Print deployment URL
-        run: echo "✓ Deployed to https://typetastic.theclouddevopslearningblog.com"
+        run: echo "✓ Deployed to https://typestar.theclouddevopslearningblog.com"

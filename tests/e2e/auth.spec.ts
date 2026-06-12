@@ -4,7 +4,7 @@ test.describe('Auth Modal', () => {
   test('opens login modal from header', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: /log in/i }).click();
-    await expect(page.getByRole('dialog', { name: /sign in to TypeTastic/i })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: /sign in to TypeStar/i })).toBeVisible();
     await expect(page.getByText('Welcome Back!')).toBeVisible();
   });
 
@@ -12,7 +12,7 @@ test.describe('Auth Modal', () => {
     await page.goto('/');
     await page.getByRole('button', { name: /log in/i }).click();
     await page.getByRole('button', { name: /sign up free/i }).click();
-    await expect(page.getByText('Join TypeTastic!')).toBeVisible();
+    await expect(page.getByText('Join TypeStar!')).toBeVisible();
     await expect(page.getByRole('button', { name: /create account/i })).toBeVisible();
   });
 

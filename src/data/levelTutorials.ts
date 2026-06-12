@@ -82,6 +82,6 @@ export const LEVEL_TUTORIALS: Record<string, LevelTutorial> = {
   },
   '20': {
     headline: 'The Ultimate Challenge — 50 WPM!',
-    body: '50 words per minute with 90% accuracy. This is the TypeTastic master level! You\'ve come so far. Take a deep breath, set your fingers on F and J, and go for glory. You\'ve got this!',
+    body: '50 words per minute with 90% accuracy. This is the TypeStar master level! You\'ve come so far. Take a deep breath, set your fingers on F and J, and go for glory. You\'ve got this!',
   },
 };

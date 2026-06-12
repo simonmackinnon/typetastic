@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Landing Page', () => {
-  test('shows TypeTastic heading and play button', async ({ page }) => {
+  test('shows TypeStar heading and play button', async ({ page }) => {
     await page.goto('/');
-    // Use the h1 specifically — the page also has "Why kids love TypeTastic" h2
-    await expect(page.locator('h1').filter({ hasText: 'TypeTastic' })).toBeVisible();
+    // Use the h1 specifically — the page also has "Why kids love TypeStar" h2
+    await expect(page.locator('h1').filter({ hasText: 'TypeStar' })).toBeVisible();
     await expect(page.getByRole('link', { name: /play now/i })).toBeVisible();
   });
 
@@ -100,8 +100,8 @@ test.describe('Badges Page', () => {
 test.describe('Navigation', () => {
   test('header logo navigates to home', async ({ page }) => {
     await page.goto('/map');
-    // Use the header logo link specifically (it's the first TypeTastic link)
-    await page.locator('header').getByRole('link', { name: /TypeTastic/i }).click();
+    // Use the header logo link specifically (it's the first TypeStar link)
+    await page.locator('header').getByRole('link', { name: /TypeStar/i }).click();
     await expect(page).toHaveURL('/');
   });
 

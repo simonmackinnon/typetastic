@@ -1,7 +1,7 @@
 {
-  "name": "typetastic",
+  "name": "typestar",
   "version": "1.0.0",
-  "description": "TypeTastic — Typing tutor for primary school kids",
+  "description": "TypeStar — Typing tutor for primary school kids",
   "type": "module",
   "scripts": {
     "dev": "vite",

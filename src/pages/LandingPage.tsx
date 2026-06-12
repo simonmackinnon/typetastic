@@ -15,7 +15,7 @@ export default function LandingPage() {
           <img src="/logo.svg" alt="" className="w-24 h-24 mx-auto drop-shadow-xl" />
         </div>
         <h1 className="font-display text-6xl sm:text-7xl text-purple-700 mb-4 drop-shadow-sm">
-          TypeTastic!
+          TypeStar!
         </h1>
         <p className="font-body text-xl text-gray-600 max-w-xl mx-auto mb-8">
           Learn to type like a superstar! 20 fun levels, colourful challenges,
@@ -85,7 +85,7 @@ export default function LandingPage() {
       <section className="bg-white py-12">
         <div className="max-w-4xl mx-auto px-4">
           <h2 className="font-display text-4xl text-center text-purple-700 mb-10">
-            Why kids love TypeTastic
+            Why kids love TypeStar
           </h2>
           <div className="grid sm:grid-cols-3 gap-6">
             {[

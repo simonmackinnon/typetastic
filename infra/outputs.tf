@@ -26,6 +26,6 @@ output "cloudfront_distribution_id" {
 }
 
 output "site_url" {
-  description = "Live URL of the TypeTastic app"
+  description = "Live URL of the TypeStar app"
   value       = "https://${local.subdomain}"
 }

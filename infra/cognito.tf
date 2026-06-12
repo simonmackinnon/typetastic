@@ -16,8 +16,8 @@ resource "aws_cognito_user_pool" "main" {
 
   verification_message_template {
     default_email_option = "CONFIRM_WITH_CODE"
-    email_subject        = "Your TypeTastic verification code"
-    email_message        = "Your TypeTastic verification code is {####} — happy typing! 🚀"
+    email_subject        = "Your TypeStar verification code"
+    email_message        = "Your TypeStar verification code is {####} — happy typing! 🚀"
   }
 
   schema {

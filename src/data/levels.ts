@@ -665,7 +665,7 @@ export const LEVELS: Level[] = [
   {
     id: '20',
     number: 20,
-    name: 'TypeTastic Master',
+    name: 'TypeStar Master',
     zone: 6,
     zoneName: 'Speed Summit',
     description: 'The ultimate challenge — 50 WPM and 90% accuracy. You\'re a typing star!',

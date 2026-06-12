@@ -30,10 +30,10 @@ export default function Header() {
           <Link to="/" className="flex items-center gap-3 group">
             <img
               src="/logo.svg"
-              alt="TypeTastic logo"
+              alt="TypeStar logo"
               className="w-10 h-10 drop-shadow-lg group-hover:animate-wiggle"
             />
-            <span className="font-display text-2xl text-white drop-shadow">TypeTastic</span>
+            <span className="font-display text-2xl text-white drop-shadow">TypeStar</span>
             <span className="hidden sm:inline-flex items-center gap-1 text-white/80 font-body text-xs mt-1">
               <Rocket size={12} /> Learn to Type!
             </span>

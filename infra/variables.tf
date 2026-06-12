@@ -13,7 +13,7 @@ variable "project_name" {
 variable "subdomain" {
   description = "Subdomain to deploy the app to"
   type        = string
-  default     = "typetastic"
+  default     = "typestar"
 }
 
 variable "root_domain" {
@@ -26,7 +26,7 @@ variable "allowed_origins" {
   description = "CORS origins allowed by API Gateway"
   type        = list(string)
   default     = [
-    "https://typetastic.theclouddevopslearningblog.com",
+    "https://typestar.theclouddevopslearningblog.com",
     "http://localhost:5173",
     "http://localhost:4173",
   ]

@@ -43,7 +43,7 @@ export default function AuthModal({ onClose }: Props) {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Sign in to TypeTastic"
+      aria-label="Sign in to TypeStar"
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
@@ -52,7 +52,7 @@ export default function AuthModal({ onClose }: Props) {
         <div className="text-center mb-6">
           <div className="text-5xl mb-2">🚀</div>
           <h2 className="font-display text-3xl text-purple-700">
-            {mode === 'login' ? 'Welcome Back!' : mode === 'register' ? 'Join TypeTastic!' : 'Check Your Email!'}
+            {mode === 'login' ? 'Welcome Back!' : mode === 'register' ? 'Join TypeStar!' : 'Check Your Email!'}
           </h2>
           <p className="font-body text-gray-500 text-sm mt-1">
             {mode === 'login'

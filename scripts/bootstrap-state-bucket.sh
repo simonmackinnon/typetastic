@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run ONCE to create the S3 bucket that stores Terraform state for TypeTastic.
+# Run ONCE to create the S3 bucket that stores Terraform state for TypeStar.
 # Usage: ./scripts/bootstrap-state-bucket.sh <bucket-name>
 # Example: ./scripts/bootstrap-state-bucket.sh tt-terraform-state-abc123
 #
