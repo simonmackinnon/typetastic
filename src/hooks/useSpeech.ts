@@ -5,6 +5,28 @@ const EL_VOICE   = import.meta.env.VITE_ELEVENLABS_VOICE_ID as string | undefine
                     ?? 'IKne3meq5aSn9XLyUdCD'; // Charlie — Australian male
 const EL_MODEL   = 'eleven_flash_v2_5';         // lowest latency
 
+const SYMBOL_MAP: [RegExp, string][] = [
+  [/\\/g,  ' backslash '],
+  [/\+/g,  ' plus '],
+  [/;/g,   ' semicolon '],
+  [/\//g,  ' slash '],
+  [/=/g,   ' equals '],
+  [/\[/g,  ' left bracket '],
+  [/\]/g,  ' right bracket '],
+  [/\|/g,  ' pipe '],
+  [/\^/g,  ' caret '],
+  [/~/g,   ' tilde '],
+  [/`/g,   ' backtick '],
+  [/_/g,   ' underscore '],
+  [/\*/g,  ' asterisk '],
+];
+
+function sanitizeForSpeech(text: string): string {
+  let out = text;
+  for (const [re, word] of SYMBOL_MAP) out = out.replace(re, word);
+  return out.replace(/\s{2,}/g, ' ').trim();
+}
+
 export function useSpeech() {
   const audioRef  = useRef<HTMLAudioElement | null>(null);
   const [speaking, setSpeaking] = useState(false);
@@ -22,7 +44,9 @@ export function useSpeech() {
     setSpeaking(false);
   }, []);
 
-  const speak = useCallback(async (text: string) => {
+  const speak = useCallback(async (rawText: string) => {
+    const text = sanitizeForSpeech(rawText);
+
     // Stop anything already playing
     audioRef.current?.pause();
     audioRef.current = null;
@@ -53,7 +77,18 @@ export function useSpeech() {
 
         audio.onended = () => { setSpeaking(false); URL.revokeObjectURL(url); };
         audio.onerror = () => { setSpeaking(false); URL.revokeObjectURL(url); };
-        await audio.play();
+
+        try {
+          await audio.play();
+        } catch (playErr) {
+          // Autoplay blocked — user must interact first; fail silently
+          if ((playErr as DOMException).name === 'NotAllowedError') {
+            setSpeaking(false);
+            URL.revokeObjectURL(url);
+            return;
+          }
+          throw playErr;
+        }
         return;
       } catch (err) {
         console.warn('ElevenLabs TTS failed, falling back to browser speech', err);
