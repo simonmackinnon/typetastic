@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Volume2, VolumeX, Play } from 'lucide-react';
 import type { Level } from '../../types';
 import { LEVEL_TUTORIALS } from '../../data/levelTutorials';
@@ -13,45 +13,21 @@ interface Props {
 
 export default function LevelTutorialModal({ level, onContinue, onDismiss }: Props) {
   const tutorial = LEVEL_TUTORIALS[level.id];
-  const { speak, stop, supported } = useSpeech();
-  const [speaking, setSpeaking] = useState(false);
+  const { speak, stop, speaking } = useSpeech();
 
   const handleSpeak = () => {
-    if (!tutorial || !supported) return;
-    setSpeaking(true);
+    if (!tutorial) return;
     speak(`${tutorial.headline}. ${tutorial.body}`);
   };
 
-  const handleStop = () => {
-    stop();
-    setSpeaking(false);
-  };
-
-  // Auto-play on open (works on desktop Chrome/Firefox; silently skipped on iOS)
+  // Auto-play on open
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (tutorial && supported) {
-        setSpeaking(true);
-        speak(`Level ${level.number}. ${tutorial.headline}. ${tutorial.body}`);
-      }
+      if (tutorial) speak(`Level ${level.number}. ${tutorial.headline}. ${tutorial.body}`);
     }, 400);
-    return () => {
-      clearTimeout(timer);
-      stop();
-    };
+    return () => { clearTimeout(timer); stop(); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Detect when speech ends so we can reset the button state
-  useEffect(() => {
-    if (!speaking) return;
-    const id = setInterval(() => {
-      if (supported && !window.speechSynthesis.speaking) {
-        setSpeaking(false);
-      }
-    }, 300);
-    return () => clearInterval(id);
-  }, [speaking, supported]);
 
   if (!tutorial) return null;
 
@@ -65,7 +41,6 @@ export default function LevelTutorialModal({ level, onContinue, onDismiss }: Pro
   };
 
   return (
-    /* Backdrop */
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
       <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl animate-bounce-in overflow-hidden">
 
@@ -88,35 +63,31 @@ export default function LevelTutorialModal({ level, onContinue, onDismiss }: Pro
           <p className="font-body text-gray-600 leading-relaxed text-base mb-6">{tutorial.body}</p>
 
           {/* Speech controls */}
-          {supported && (
-            <div className="flex items-center gap-3 mb-6">
-              {speaking ? (
-                <button
-                  onClick={handleStop}
-                  className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-600 rounded-xl font-body font-bold text-sm hover:bg-red-200 transition-colors"
-                >
-                  <VolumeX size={16} />
-                  Stop
-                </button>
-              ) : (
-                <button
-                  onClick={handleSpeak}
-                  className="flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-600 rounded-xl font-body font-bold text-sm hover:bg-purple-200 transition-colors"
-                >
-                  <Volume2 size={16} />
-                  Listen again
-                </button>
-              )}
-              <span className="font-body text-xs text-gray-400">
-                {speaking ? 'Reading aloud…' : 'Click to hear this tip'}
-              </span>
-            </div>
-          )}
+          <div className="flex items-center gap-3 mb-6">
+            {speaking ? (
+              <button
+                onClick={stop}
+                className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-600 rounded-xl font-body font-bold text-sm hover:bg-red-200 transition-colors"
+              >
+                <VolumeX size={16} /> Stop
+              </button>
+            ) : (
+              <button
+                onClick={handleSpeak}
+                className="flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-600 rounded-xl font-body font-bold text-sm hover:bg-purple-200 transition-colors"
+              >
+                <Volume2 size={16} /> Listen again
+              </button>
+            )}
+            <span className="font-body text-xs text-gray-400">
+              {speaking ? 'Reading aloud…' : 'Click to hear this tip'}
+            </span>
+          </div>
 
           {/* Action buttons */}
           <div className="flex flex-col gap-3">
             <button
-              onClick={() => { handleStop(); onContinue(); }}
+              onClick={() => { stop(); onContinue(); }}
               className={`
                 w-full py-4 rounded-2xl font-display text-xl text-white shadow-lg
                 bg-gradient-to-r ${zoneColors[level.zone] ?? 'from-purple-500 to-pink-500'}
@@ -127,7 +98,7 @@ export default function LevelTutorialModal({ level, onContinue, onDismiss }: Pro
               Got it — let's play!
             </button>
             <button
-              onClick={() => { handleStop(); onDismiss(); }}
+              onClick={() => { stop(); onDismiss(); }}
               className="w-full py-2 font-body text-sm text-gray-400 hover:text-gray-600 transition-colors"
             >
               Don't show this tutorial again

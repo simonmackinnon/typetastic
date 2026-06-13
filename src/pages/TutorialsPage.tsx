@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Volume2, VolumeX } from 'lucide-react';
 import Keyboard from '../components/Keyboard/Keyboard';
@@ -56,40 +56,23 @@ const TIPS: Array<{
 ];
 
 function TipCard({ tip }: { tip: typeof TIPS[number] }) {
-  const { speak, stop, supported } = useSpeech();
-  const [speaking, setSpeaking] = useState(false);
+  const { speak, stop, speaking } = useSpeech();
 
   const toggle = () => {
-    if (speaking) {
-      stop();
-      setSpeaking(false);
-    } else {
-      setSpeaking(true);
-      speak(`${tip.title}. ${tip.body}`);
-    }
+    if (speaking) { stop(); } else { speak(`${tip.title}. ${tip.body}`); }
   };
-
-  useEffect(() => {
-    if (!speaking) return;
-    const id = setInterval(() => {
-      if (supported && !window.speechSynthesis.speaking) setSpeaking(false);
-    }, 300);
-    return () => clearInterval(id);
-  }, [speaking, supported]);
 
   return (
     <div className={`bg-gradient-to-br ${tip.gradient} rounded-3xl p-6 text-white shadow-lg hover:scale-105 transition-transform`}>
       <div className="flex items-start justify-between mb-4">
         <TipIcon type={tip.type} size={72} />
-        {supported && (
-          <button
-            onClick={toggle}
-            aria-label={speaking ? 'Stop' : 'Listen'}
-            className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors mt-1"
-          >
-            {speaking ? <VolumeX size={18} /> : <Volume2 size={18} />}
-          </button>
-        )}
+        <button
+          onClick={toggle}
+          aria-label={speaking ? 'Stop' : 'Listen'}
+          className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors mt-1"
+        >
+          {speaking ? <VolumeX size={18} /> : <Volume2 size={18} />}
+        </button>
       </div>
       <h3 className="font-display text-xl mb-2">{tip.title}</h3>
       <p className="font-body text-sm text-white/90 leading-relaxed">{tip.body}</p>
@@ -100,7 +83,7 @@ function TipCard({ tip }: { tip: typeof TIPS[number] }) {
 function HomeRowDemo() {
   const [activeIdx, setActiveIdx] = useState(0);
   const [paused, setPaused] = useState(false);
-  const { speak, supported } = useSpeech();
+  const { speak } = useSpeech();
 
   useEffect(() => {
     if (paused) return;
@@ -117,14 +100,12 @@ function HomeRowDemo() {
           {active.key === ';' ? ';' : active.key.toUpperCase()}
         </div>
         <div className="font-body text-xl font-bold">{active.finger}</div>
-        {supported && (
-          <button
-            className="mt-2 text-xs text-white/70 hover:text-white underline"
-            onClick={() => speak(`${active.finger} finger presses ${active.key === ';' ? 'semicolon' : active.key.toUpperCase()}`)}
-          >
-            hear it
-          </button>
-        )}
+        <button
+          className="mt-2 text-xs text-white/70 hover:text-white underline"
+          onClick={() => speak(`${active.finger} finger presses ${active.key === ';' ? 'semicolon' : active.key.toUpperCase()}`)}
+        >
+          hear it
+        </button>
       </div>
 
       <div className="flex gap-2">

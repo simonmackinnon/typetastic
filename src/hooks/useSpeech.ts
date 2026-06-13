@@ -1,22 +1,75 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+
+const EL_KEY     = import.meta.env.VITE_ELEVENLABS_API_KEY as string | undefined;
+const EL_VOICE   = import.meta.env.VITE_ELEVENLABS_VOICE_ID as string | undefined
+                    ?? 'IKne3meq5aSn9XLyUdCD'; // Charlie — Australian male
+const EL_MODEL   = 'eleven_flash_v2_5';         // lowest latency
 
 export function useSpeech() {
-  const supported = typeof window !== 'undefined' && 'speechSynthesis' in window;
+  const audioRef  = useRef<HTMLAudioElement | null>(null);
+  const [speaking, setSpeaking] = useState(false);
 
-  useEffect(() => () => { if (supported) window.speechSynthesis.cancel(); }, [supported]);
-
-  const speak = useCallback((text: string) => {
-    if (!supported) return;
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.rate = 0.88;
-    u.pitch = 1.15;
-    window.speechSynthesis.speak(u);
-  }, [supported]);
+  // Clean up audio on unmount
+  useEffect(() => () => {
+    audioRef.current?.pause();
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+  }, []);
 
   const stop = useCallback(() => {
-    if (supported) window.speechSynthesis.cancel();
-  }, [supported]);
+    audioRef.current?.pause();
+    audioRef.current = null;
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    setSpeaking(false);
+  }, []);
 
-  return { speak, stop, supported };
+  const speak = useCallback(async (text: string) => {
+    // Stop anything already playing
+    audioRef.current?.pause();
+    audioRef.current = null;
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    setSpeaking(true);
+
+    // ── ElevenLabs path ────────────────────────────────────────────────────
+    if (EL_KEY) {
+      try {
+        const res = await fetch(
+          `https://api.elevenlabs.io/v1/text-to-speech/${EL_VOICE}/stream`,
+          {
+            method: 'POST',
+            headers: { 'xi-api-key': EL_KEY, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              text,
+              model_id: EL_MODEL,
+              voice_settings: { stability: 0.55, similarity_boost: 0.75, style: 0.0, use_speaker_boost: true },
+            }),
+          },
+        );
+        if (!res.ok) throw new Error(`ElevenLabs ${res.status}`);
+
+        const blob = await res.blob();
+        const url  = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        audioRef.current = audio;
+
+        audio.onended = () => { setSpeaking(false); URL.revokeObjectURL(url); };
+        audio.onerror = () => { setSpeaking(false); URL.revokeObjectURL(url); };
+        await audio.play();
+        return;
+      } catch (err) {
+        console.warn('ElevenLabs TTS failed, falling back to browser speech', err);
+        setSpeaking(false);
+      }
+    }
+
+    // ── Browser Web Speech fallback ─────────────────────────────────────────
+    if (!('speechSynthesis' in window)) { setSpeaking(false); return; }
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate  = 0.88;
+    u.pitch = 1.0;
+    u.onend   = () => setSpeaking(false);
+    u.onerror = () => setSpeaking(false);
+    window.speechSynthesis.speak(u);
+  }, []);
+
+  return { speak, stop, speaking, supported: true };
 }
