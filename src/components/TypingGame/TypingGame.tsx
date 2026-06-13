@@ -44,7 +44,7 @@ export default function TypingGame({
       {/* Exercise header */}
       <div className="text-center">
         <div className="flex items-center justify-center gap-2 mb-2">
-          <span className={`px-3 py-1 rounded-full text-sm font-body font-bold text-white ${level.color}`}>
+          <span data-testid="level-name" className={`px-3 py-1 rounded-full text-sm font-body font-bold text-white ${level.color}`}>
             {level.icon} {level.name}
           </span>
           <span className="text-gray-500 font-body text-sm">

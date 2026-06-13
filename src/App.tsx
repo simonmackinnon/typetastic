@@ -21,7 +21,7 @@ function MobileGate() {
     <div className="md:hidden fixed inset-0 z-[100] flex flex-col items-center justify-center text-center p-8
                     bg-gradient-to-b from-purple-600 via-pink-500 to-orange-400 text-white">
       <div className="text-7xl mb-6">⌨️</div>
-      <h1 className="font-display text-4xl mb-4">TypeStar needs a keyboard!</h1>
+      <h2 className="font-display text-4xl mb-4">TypeStar needs a keyboard!</h2>
       <p className="font-body text-lg text-white/90 max-w-xs leading-relaxed">
         This app is designed for desktop or laptop computers with a physical keyboard.
       </p>

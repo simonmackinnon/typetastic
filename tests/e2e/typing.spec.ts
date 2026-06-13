@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Landing Page', () => {
   test('shows TypeStar heading and play button', async ({ page }) => {
     await page.goto('/');
-    // Use the h1 specifically — the page also has "Why kids love TypeStar" h2
+    // MobileGate uses h2; the landing page h1 is the only h1
     await expect(page.locator('h1').filter({ hasText: 'TypeStar' })).toBeVisible();
     await expect(page.getByRole('link', { name: /play now/i })).toBeVisible();
   });
@@ -44,14 +44,21 @@ test.describe('Level Map', () => {
     await page.goto('/map');
     // Level 2 and beyond should be locked without progress
     const level2 = page.getByTestId('level-02');
-    await expect(level2).toContainText('🔒');
+    await expect(level2.getByRole('img', { name: 'Locked' })).toBeVisible();
   });
 });
 
 test.describe('Game Page', () => {
+  test.beforeEach(async ({ page }) => {
+    // Pre-dismiss the level 1 tutorial so it doesn't block game page tests
+    await page.addInitScript(() => {
+      localStorage.setItem('tt_dismissed', JSON.stringify(['01']));
+    });
+  });
+
   test('navigates to level 1 game', async ({ page }) => {
     await page.goto('/play/01');
-    await expect(page.getByText('Home Base')).toBeVisible();
+    await expect(page.getByTestId('level-name')).toContainText('Home Base');
     await expect(page.getByRole('button', { name: /start/i })).toBeVisible();
   });
 
@@ -89,11 +96,12 @@ test.describe('Badges Page', () => {
     expect(badges).toHaveLength(12);
   });
 
-  test('badges show lock icons when not earned', async ({ page }) => {
+  test('unearned badges are visually distinct', async ({ page }) => {
     await page.goto('/badges');
-    const lockCount = await page.locator('text=🔒').count();
-    // All badges should be locked for a new visitor
-    expect(lockCount).toBeGreaterThan(0);
+    // Unearned badges have grayscale + opacity-50 classes; no "Earned!" label
+    const earnedLabels = await page.locator('text=✓ Earned!').count();
+    // A fresh visitor has 0 earned badges
+    expect(earnedLabels).toBe(0);
   });
 });
 

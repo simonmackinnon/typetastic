@@ -54,8 +54,9 @@ export default function LevelMap() {
                   >
                     {/* Lock icon for locked levels */}
                     {!unlocked && (
-                      <div className="absolute top-2 right-2 text-gray-400">
-                        <Lock size={16} />
+                      <div className="absolute top-2 right-2 text-gray-400"
+                           role="img" aria-label="Locked">
+                        <Lock size={16} aria-hidden="true" />
                       </div>
                     )}
 
