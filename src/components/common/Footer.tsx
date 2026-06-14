@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 export default function Footer() {
   return (
     <footer className="bg-gray-900 text-gray-400 py-6 px-4 mt-auto">
@@ -15,9 +17,15 @@ export default function Footer() {
             The Cloud DevOps Learning Blog
           </a>
         </span>
-        <span className="text-gray-600 text-xs">
-          TypeStar — Learn to type, one key at a time.
-        </span>
+        <div className="flex items-center gap-4 text-xs">
+          <Link to="/about" className="text-gray-500 hover:text-gray-300 transition-colors">
+            About
+          </Link>
+          <Link to="/tutorials" className="text-gray-500 hover:text-gray-300 transition-colors">
+            How to Type
+          </Link>
+          <span className="text-gray-700">TypeStar — Learn to type, one key at a time.</span>
+        </div>
       </div>
     </footer>
   );

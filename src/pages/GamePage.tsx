@@ -157,7 +157,7 @@ export default function GamePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-50 to-pink-50 py-8">
-      {/* Per-level tutorial overlay */}
+      {/* Per-level tutorial overlay — works on mobile too */}
       {showTutorial && level && (
         <LevelTutorialModal
           level={level}
@@ -166,35 +166,61 @@ export default function GamePage() {
         />
       )}
 
-      {/* Progress bar */}
-      <div className="max-w-3xl mx-auto px-4 mb-6">
-        <div className="flex items-center justify-between mb-2">
+      {/* Mobile: can't play without a physical keyboard */}
+      <div className="md:hidden flex flex-col items-center justify-center min-h-[60vh] text-center px-8 gap-6">
+        <div className="text-6xl">⌨️</div>
+        <h2 className="font-display text-3xl text-purple-700">Need a keyboard to play!</h2>
+        <p className="font-body text-gray-500 max-w-xs leading-relaxed">
+          This level needs a physical keyboard. Come back on a desktop or laptop to play.
+        </p>
+        <div className="flex flex-col gap-3 w-full max-w-xs">
+          <button
+            onClick={() => navigate('/tutorials')}
+            className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-display text-lg rounded-2xl hover:scale-105 transition-transform"
+          >
+            Browse Tutorials
+          </button>
           <button
             onClick={() => navigate('/map')}
-            className="font-body text-gray-500 hover:text-gray-700 flex items-center gap-1"
+            className="w-full py-3 bg-gray-100 text-gray-700 font-body font-bold rounded-2xl hover:bg-gray-200 transition-colors"
           >
-            ← Back
+            ← Back to Map
           </button>
-          <span className="font-body text-gray-500 text-sm">
-            Exercise {exerciseIndex + 1} / {level.exercises.length}
-          </span>
-        </div>
-        <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
-          <div
-            className={`h-full ${level.color} transition-all duration-500`}
-            style={{ width: `${((exerciseIndex) / level.exercises.length) * 100}%` }}
-          />
         </div>
       </div>
 
-      <TypingGame
-        key={`${level.id}-${exerciseIndex}`}
-        level={level}
-        exercise={level.exercises[exerciseIndex]}
-        exerciseNumber={exerciseIndex + 1}
-        totalExercises={level.exercises.length}
-        onComplete={handleExerciseComplete}
-      />
+      {/* Desktop: full game */}
+      <div className="hidden md:block">
+        {/* Progress bar */}
+        <div className="max-w-3xl mx-auto px-4 mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <button
+              onClick={() => navigate('/map')}
+              className="font-body text-gray-500 hover:text-gray-700 flex items-center gap-1"
+            >
+              ← Back
+            </button>
+            <span className="font-body text-gray-500 text-sm">
+              Exercise {exerciseIndex + 1} / {level.exercises.length}
+            </span>
+          </div>
+          <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+            <div
+              className={`h-full ${level.color} transition-all duration-500`}
+              style={{ width: `${((exerciseIndex) / level.exercises.length) * 100}%` }}
+            />
+          </div>
+        </div>
+
+        <TypingGame
+          key={`${level.id}-${exerciseIndex}`}
+          level={level}
+          exercise={level.exercises[exerciseIndex]}
+          exerciseNumber={exerciseIndex + 1}
+          totalExercises={level.exercises.length}
+          onComplete={handleExerciseComplete}
+        />
+      </div>
     </div>
   );
 }
