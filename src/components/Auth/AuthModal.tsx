@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { X, LogIn, UserPlus, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 type Mode = 'login' | 'register' | 'verify';
@@ -47,10 +48,23 @@ export default function AuthModal({ onClose }: Props) {
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-sm animate-bounce-in">
+      <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-sm animate-bounce-in relative">
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 p-1.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+          aria-label="Close"
+        >
+          <X size={18} />
+        </button>
+
         {/* Header */}
         <div className="text-center mb-6">
-          <div className="text-5xl mb-2">🚀</div>
+          <img
+            src="/logo.svg"
+            alt="TypeStar"
+            className="w-16 h-16 mx-auto mb-3 drop-shadow-md"
+          />
           <h2 className="font-display text-3xl text-purple-700">
             {mode === 'login' ? 'Welcome Back!' : mode === 'register' ? 'Join TypeStar!' : 'Check Your Email!'}
           </h2>
@@ -113,23 +127,26 @@ export default function AuthModal({ onClose }: Props) {
           )}
 
           {error && (
-            <p className="text-red-500 font-body text-sm bg-red-50 rounded-xl p-3">
-              ⚠️ {error}
-            </p>
+            <div className="flex items-start gap-2 text-red-600 bg-red-50 rounded-xl p-3">
+              <AlertCircle size={16} className="shrink-0 mt-0.5" />
+              <p className="font-body text-sm">{error}</p>
+            </div>
           )}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-body font-bold text-lg rounded-xl hover:shadow-lg transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+            className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-body font-bold text-lg rounded-xl hover:shadow-lg transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            {loading
-              ? '⏳ Loading...'
-              : mode === 'login'
-              ? '🚀 Log In'
-              : mode === 'register'
-              ? '✨ Create Account'
-              : '✅ Verify & Log In'}
+            {loading ? (
+              <><Loader2 size={18} className="animate-spin" /> Loading…</>
+            ) : mode === 'login' ? (
+              <><LogIn size={18} /> Log In</>
+            ) : mode === 'register' ? (
+              <><UserPlus size={18} /> Create Account</>
+            ) : (
+              <><CheckCircle size={18} /> Verify &amp; Log In</>
+            )}
           </button>
         </form>
 
@@ -144,14 +161,6 @@ export default function AuthModal({ onClose }: Props) {
             </button>
           </p>
         )}
-
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl font-bold"
-          aria-label="Close"
-        >
-          ✕
-        </button>
       </div>
     </div>
   );

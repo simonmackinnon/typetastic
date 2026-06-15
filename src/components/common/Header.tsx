@@ -12,13 +12,14 @@ export default function Header() {
   const navLink = (to: string, label: string, Icon: LucideIcon) => (
     <Link
       to={to}
-      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full font-body font-bold text-sm transition-all
+      aria-label={label}
+      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full font-body font-bold text-sm transition-all
         ${location.pathname === to
           ? 'bg-white text-purple-700 shadow-md'
           : 'text-white hover:bg-white/20'}`}
     >
       <Icon size={15} />
-      {label}
+      <span className="hidden sm:inline">{label}</span>
     </Link>
   );
 
@@ -51,17 +52,17 @@ export default function Header() {
                 </span>
                 <button
                   onClick={logout}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full font-body font-bold text-sm text-white hover:bg-white/20 transition-all"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full font-body font-bold text-sm text-white hover:bg-white/20 transition-all"
                 >
-                  <LogOut size={14} /> Log out
+                  <LogOut size={14} /><span className="hidden sm:inline">Log out</span>
                 </button>
               </div>
             ) : (
               <button
                 onClick={() => setShowAuth(true)}
-                className="flex items-center gap-1.5 px-4 py-1.5 rounded-full font-body font-bold text-sm bg-white text-purple-700 shadow hover:shadow-md transition-all"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full font-body font-bold text-sm bg-white text-purple-700 shadow hover:shadow-md transition-all"
               >
-                <LogIn size={14} /> Log in
+                <LogIn size={14} /><span className="hidden sm:inline">Log in</span>
               </button>
             )}
           </nav>
