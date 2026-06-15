@@ -24,6 +24,9 @@ export default function Footer() {
           <Link to="/tutorials" className="text-gray-500 hover:text-gray-300 transition-colors">
             How to Type
           </Link>
+          <Link to="/privacy" className="text-gray-500 hover:text-gray-300 transition-colors">
+            Privacy
+          </Link>
           <span className="text-gray-700">TypeStar — Learn to type, one key at a time.</span>
         </div>
       </div>

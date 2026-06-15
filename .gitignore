@@ -14,3 +14,4 @@ infra/tfplan
 *.tfstate
 *.tfstate.backup
 .DS_Store
+public/audio/*.mp3

@@ -1,37 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { sanitizeForSpeech } from '../utils/speechUtils';
+import audioManifest from '../data/audioManifest.json';
 
 const EL_KEY     = import.meta.env.VITE_ELEVENLABS_API_KEY as string | undefined;
 const EL_VOICE   = import.meta.env.VITE_ELEVENLABS_VOICE_ID as string | undefined
-                    ?? 'IKne3meq5aSn9XLyUdCD'; // Charlie — Australian male
-const EL_MODEL   = 'eleven_flash_v2_5';         // lowest latency
+                    ?? 'IKne3meq5aSn9XLyUdCD';
+const EL_MODEL   = 'eleven_flash_v2_5';
 
-const SYMBOL_MAP: [RegExp, string][] = [
-  [/\\/g,  ' backslash '],
-  [/\+/g,  ' plus '],
-  [/;/g,   ' semicolon '],
-  [/\//g,  ' slash '],
-  [/=/g,   ' equals '],
-  [/\[/g,  ' left bracket '],
-  [/\]/g,  ' right bracket '],
-  [/\|/g,  ' pipe '],
-  [/\^/g,  ' caret '],
-  [/~/g,   ' tilde '],
-  [/`/g,   ' backtick '],
-  [/_/g,   ' underscore '],
-  [/\*/g,  ' asterisk '],
-];
+const MANIFEST = audioManifest as Record<string, string>;
 
-function sanitizeForSpeech(text: string): string {
-  let out = text;
-  for (const [re, word] of SYMBOL_MAP) out = out.replace(re, word);
-  return out.replace(/\s{2,}/g, ' ').trim();
-}
+export { sanitizeForSpeech };
 
 export function useSpeech() {
   const audioRef  = useRef<HTMLAudioElement | null>(null);
   const [speaking, setSpeaking] = useState(false);
 
-  // Clean up audio on unmount
   useEffect(() => () => {
     audioRef.current?.pause();
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
@@ -47,13 +30,31 @@ export function useSpeech() {
   const speak = useCallback(async (rawText: string) => {
     const text = sanitizeForSpeech(rawText);
 
-    // Stop anything already playing
     audioRef.current?.pause();
     audioRef.current = null;
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     setSpeaking(true);
 
-    // ── ElevenLabs path ────────────────────────────────────────────────────
+    // ── Pre-recorded static file ───────────────────────────────────────────
+    const prerecordedUrl = MANIFEST[text];
+    if (prerecordedUrl) {
+      const audio = new Audio(prerecordedUrl);
+      audioRef.current = audio;
+      audio.onended = () => setSpeaking(false);
+      audio.onerror = () => setSpeaking(false);
+      try {
+        await audio.play();
+      } catch (playErr) {
+        if ((playErr as DOMException).name === 'NotAllowedError') {
+          setSpeaking(false);
+          return;
+        }
+        throw playErr;
+      }
+      return;
+    }
+
+    // ── ElevenLabs live path (dev / unrecognised phrases) ─────────────────
     if (EL_KEY) {
       try {
         const res = await fetch(
@@ -70,8 +71,8 @@ export function useSpeech() {
         );
         if (!res.ok) throw new Error(`ElevenLabs ${res.status}`);
 
-        const blob = await res.blob();
-        const url  = URL.createObjectURL(blob);
+        const blob  = await res.blob();
+        const url   = URL.createObjectURL(blob);
         const audio = new Audio(url);
         audioRef.current = audio;
 
@@ -81,7 +82,6 @@ export function useSpeech() {
         try {
           await audio.play();
         } catch (playErr) {
-          // Autoplay blocked — user must interact first; fail silently
           if ((playErr as DOMException).name === 'NotAllowedError') {
             setSpeaking(false);
             URL.revokeObjectURL(url);
@@ -96,7 +96,7 @@ export function useSpeech() {
       }
     }
 
-    // ── Browser Web Speech fallback ─────────────────────────────────────────
+    // ── Browser Web Speech fallback ────────────────────────────────────────
     if (!('speechSynthesis' in window)) { setSpeaking(false); return; }
     const u = new SpeechSynthesisUtterance(text);
     u.rate  = 0.88;

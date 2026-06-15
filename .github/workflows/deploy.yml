@@ -28,6 +28,19 @@ jobs:
       - name: Run unit tests
         run: npm run test
 
+      - name: Cache pre-generated audio
+        uses: actions/cache@v4
+        with:
+          path: public/audio
+          key: audio-${{ hashFiles('scripts/generate-audio.ts', 'src/data/levels.ts', 'src/data/levelTutorials.ts', 'src/data/tips.ts') }}
+          restore-keys: audio-
+
+      - name: Pre-generate TTS audio
+        run: npm run generate:audio
+        env:
+          VITE_ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          VITE_ELEVENLABS_VOICE_ID: IKne3meq5aSn9XLyUdCD
+
       - name: Build application
         run: npm run build
         env:
