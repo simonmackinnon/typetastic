@@ -33,6 +33,7 @@ jobs:
         env:
           COGNITO_USER_POOL_ID:          ${{ secrets.COGNITO_USER_POOL_ID }}
           COGNITO_CLIENT_ID:             ${{ secrets.COGNITO_CLIENT_ID }}
+          COGNITO_DOMAIN:                ${{ secrets.COGNITO_DOMAIN }}
           API_BASE_URL:                  ${{ secrets.API_BASE_URL }}
           VITE_ELEVENLABS_API_KEY:       ${{ secrets.ELEVENLABS_API_KEY }}
           VITE_ELEVENLABS_VOICE_ID:      IKne3meq5aSn9XLyUdCD

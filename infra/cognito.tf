@@ -34,6 +34,32 @@ resource "aws_cognito_user_pool" "main" {
   tags = { Project = local.project }
 }
 
+# ── Cognito Domain (required for OAuth hosted UI and IdP callbacks) ───────────
+
+resource "aws_cognito_user_pool_domain" "main" {
+  domain       = "typestar-auth"   # globally unique prefix → typestar-auth.auth.<region>.amazoncognito.com
+  user_pool_id = aws_cognito_user_pool.main.id
+}
+
+# ── Google Identity Provider ──────────────────────────────────────────────────
+
+resource "aws_cognito_identity_provider" "google" {
+  user_pool_id  = aws_cognito_user_pool.main.id
+  provider_name = "Google"
+  provider_type = "Google"
+
+  provider_details = {
+    client_id        = var.google_client_id
+    client_secret    = var.google_client_secret
+    authorize_scopes = "email profile openid"
+  }
+
+  attribute_mapping = {
+    email    = "email"
+    username = "sub"
+  }
+}
+
 # ── App Client (browser SPA — no secret) ─────────────────────────────────────
 
 resource "aws_cognito_user_pool_client" "spa" {
@@ -42,10 +68,30 @@ resource "aws_cognito_user_pool_client" "spa" {
 
   generate_secret = false
 
+  # SRP flows kept for email/password login
   explicit_auth_flows = [
     "ALLOW_USER_SRP_AUTH",
     "ALLOW_REFRESH_TOKEN_AUTH",
   ]
+
+  # OAuth Authorization Code + PKCE for Google sign-in
+  allowed_oauth_flows_user_pool_client = true
+  allowed_oauth_flows                  = ["code"]
+  allowed_oauth_scopes                 = ["email", "openid", "profile"]
+
+  callback_urls = [
+    "https://${local.subdomain}/callback",
+    "http://localhost:5173/callback",
+    "http://localhost:4173/callback",
+  ]
+
+  logout_urls = [
+    "https://${local.subdomain}",
+    "http://localhost:5173",
+    "http://localhost:4173",
+  ]
+
+  supported_identity_providers = ["COGNITO", "Google"]
 
   access_token_validity  = 1   # hours
   id_token_validity      = 1   # hours
@@ -56,4 +102,6 @@ resource "aws_cognito_user_pool_client" "spa" {
     id_token      = "hours"
     refresh_token = "days"
   }
+
+  depends_on = [aws_cognito_identity_provider.google]
 }

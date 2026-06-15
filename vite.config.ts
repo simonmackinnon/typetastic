@@ -5,8 +5,9 @@ export default defineConfig({
   plugins: [react()],
   define: {
     'process.env.COGNITO_USER_POOL_ID': JSON.stringify(process.env.COGNITO_USER_POOL_ID ?? ''),
-    'process.env.COGNITO_CLIENT_ID': JSON.stringify(process.env.COGNITO_CLIENT_ID ?? ''),
-    'process.env.API_BASE_URL': JSON.stringify(process.env.API_BASE_URL ?? ''),
+    'process.env.COGNITO_CLIENT_ID':    JSON.stringify(process.env.COGNITO_CLIENT_ID ?? ''),
+    'process.env.API_BASE_URL':         JSON.stringify(process.env.API_BASE_URL ?? ''),
+    'process.env.COGNITO_DOMAIN':       JSON.stringify(process.env.COGNITO_DOMAIN ?? ''),
   },
   build: {
     outDir: 'dist',

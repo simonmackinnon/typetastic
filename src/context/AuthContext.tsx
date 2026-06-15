@@ -1,14 +1,23 @@
 import React, { createContext, useContext, useEffect, useReducer } from 'react';
-import { getCurrentUser, signIn, signOut as authSignOut, signUp, confirmSignUp } from '../services/auth';
+import {
+  getCurrentUser,
+  signIn,
+  signOut as authSignOut,
+  signUp,
+  confirmSignUp,
+  redirectToGoogle,
+} from '../services/auth';
 import type { AuthState, User } from '../types';
 
 interface AuthContextValue {
   authState: AuthState;
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: () => void;
   logout: () => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   verify: (email: string, code: string) => Promise<void>;
+  refresh: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
@@ -53,10 +62,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await confirmSignUp(email, code);
   }
 
+  function loginWithGoogle() {
+    redirectToGoogle();
+  }
+
+  async function refresh() {
+    const user = await getCurrentUser();
+    dispatch(user ? { type: 'SET_USER', user } : { type: 'CLEAR_USER' });
+  }
+
   const user = authState.status === 'authenticated' ? authState.user : null;
 
   return (
-    <AuthContext.Provider value={{ authState, user, login, logout, register, verify }}>
+    <AuthContext.Provider value={{ authState, user, login, loginWithGoogle, logout, register, verify, refresh }}>
       {children}
     </AuthContext.Provider>
   );

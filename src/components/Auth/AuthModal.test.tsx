@@ -23,9 +23,11 @@ function makeContext(overrides: Partial<{
     authState: { status: 'unauthenticated' } as AuthState,
     user: null,
     login: vi.fn().mockResolvedValue(undefined),
+    loginWithGoogle: vi.fn(),
     logout: vi.fn(),
     register: vi.fn().mockResolvedValue(undefined),
     verify: vi.fn().mockResolvedValue(undefined),
+    refresh: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }

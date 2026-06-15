@@ -22,6 +22,17 @@ variable "root_domain" {
   default     = "theclouddevopslearningblog.com"
 }
 
+variable "google_client_id" {
+  description = "Google OAuth 2.0 client ID for social sign-in"
+  type        = string
+}
+
+variable "google_client_secret" {
+  description = "Google OAuth 2.0 client secret for social sign-in"
+  type        = string
+  sensitive   = true
+}
+
 variable "allowed_origins" {
   description = "CORS origins allowed by API Gateway"
   type        = list(string)

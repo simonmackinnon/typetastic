@@ -29,3 +29,8 @@ output "site_url" {
   description = "Live URL of the TypeStar app"
   value       = "https://${local.subdomain}"
 }
+
+output "cognito_domain" {
+  description = "→ GitHub secret COGNITO_DOMAIN (used by frontend for Google sign-in redirect)"
+  value       = "https://${aws_cognito_user_pool_domain.main.domain}.auth.${var.aws_region}.amazoncognito.com"
+}
