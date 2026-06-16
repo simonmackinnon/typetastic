@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import { AuthProvider } from './context/AuthContext';
 import { ProgressProvider } from './context/ProgressContext';
 import Header from './components/common/Header';
@@ -20,7 +21,17 @@ function KeyedGamePage() {
   return <GamePage key={levelId} />;
 }
 
+declare function gtag(...args: unknown[]): void;
+
 function AppShell() {
+  const location = useLocation();
+
+  useEffect(() => {
+    if (typeof gtag !== 'undefined') {
+      gtag('event', 'page_view', { page_path: location.pathname + location.search });
+    }
+  }, [location]);
+
   return (
     <div className="min-h-screen bg-gray-50 font-body flex flex-col">
       <Header />
