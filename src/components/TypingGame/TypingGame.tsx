@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
+import { Play } from 'lucide-react';
 import { useTypingGame } from '../../hooks/useTypingGame';
 import Keyboard from '../Keyboard/Keyboard';
+import ZoneIcon from '../icons/ZoneIcon';
 import type { Exercise, Level, TypingResult } from '../../types';
 
 interface Props {
@@ -44,8 +46,9 @@ export default function TypingGame({
       {/* Exercise header */}
       <div className="text-center">
         <div className="flex items-center justify-center gap-2 mb-2">
-          <span data-testid="level-name" className={`px-3 py-1 rounded-full text-sm font-body font-bold text-white ${level.color}`}>
-            {level.icon} {level.name}
+          <span data-testid="level-name" className={`px-3 py-1 rounded-full text-sm font-body font-bold text-white ${level.color} flex items-center gap-1.5`}>
+            <ZoneIcon zone={level.zone as 1|2|3|4|5|6} size={16} />
+            {level.name}
           </span>
           <span className="text-gray-500 font-body text-sm">
             Exercise {exerciseNumber} of {totalExercises}
@@ -87,7 +90,7 @@ export default function TypingGame({
           onClick={game.start}
           className="px-10 py-4 bg-gradient-to-r from-green-400 to-emerald-500 text-white font-display text-2xl rounded-2xl shadow-lg hover:scale-105 transition-transform active:scale-95"
         >
-          🚀 Start!
+          <Play size={22} fill="white" /> Start!
         </button>
       )}
 
