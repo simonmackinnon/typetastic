@@ -8,6 +8,8 @@
  *   POST /me/badges/:badgeId       → mark badge earned
  *   GET  /me/profile               → get profile
  *   PUT  /me/profile               → update profile
+ *   GET  /me/games/:gameId/score   → get best score for a game (404 if never played)
+ *   PUT  /me/games/:gameId/score   → save score (only written if it beats the stored best)
  *
  * Runtime: nodejs24.x — @aws-sdk/* included natively, no bundling needed.
  *
@@ -16,6 +18,7 @@
  *   SK dataKey = "profile"
  *               | "level#01" … "level#20"
  *               | "badge#first-keystroke" … etc.
+ *               | "game#post-office#best" (one per allowlisted gameId)
  */
 
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
@@ -159,6 +162,69 @@ async function updateProfile(userId, body) {
   return ok({ updated: true });
 }
 
+// ── Game score helpers ────────────────────────────────────────────────────────
+
+// gameId comes from the client-supplied path, so it is checked against this
+// allowlist before it is ever used to build a dataKey.
+const GAME_IDS = new Set(['post-office']);
+
+const gameKey = (gameId) => `game#${gameId}#best`;
+
+const isCount = (n) => Number.isInteger(n) && n >= 0;
+
+const toGameRecord = (gameId, item) => ({
+  gameId,
+  bestScore:  item.bestScore,
+  bestStreak: item.bestStreak,
+  accuracy:   item.accuracy,
+  updatedAt:  item.updatedAt,
+});
+
+async function getGameScore(userId, gameId) {
+  const { Item } = await dynamo.send(new GetCommand({
+    TableName: TABLE,
+    Key: { userId, dataKey: gameKey(gameId) },
+  }));
+  if (!Item) return err(404, 'Not found');
+  return ok(toGameRecord(gameId, Item));
+}
+
+async function saveGameScore(userId, gameId, body) {
+  const { score, streak, accuracy } = body;
+  if (!isCount(score) || !isCount(streak) || typeof accuracy !== 'number' || accuracy < 0 || accuracy > 100) {
+    return err(400, 'score and streak must be non-negative integers, accuracy 0-100');
+  }
+
+  const item = {
+    userId,
+    dataKey:    gameKey(gameId),
+    gameId,
+    bestScore:  score,
+    bestStreak: streak,
+    accuracy,
+    updatedAt:  new Date().toISOString(),
+  };
+
+  // Same only-if-better rule as saveProgress, but as a conditional write so two
+  // concurrent submissions can't let a lower score overwrite a higher one.
+  try {
+    await dynamo.send(new PutCommand({
+      TableName: TABLE,
+      Item: item,
+      ConditionExpression: 'attribute_not_exists(dataKey) OR bestScore < :score',
+      ExpressionAttributeValues: { ':score': score },
+    }));
+  } catch (e) {
+    if (e.name !== 'ConditionalCheckFailedException') throw e;
+    const { Item: existing } = await dynamo.send(new GetCommand({
+      TableName: TABLE,
+      Key: { userId, dataKey: gameKey(gameId) },
+    }));
+    return ok({ updated: false, ...toGameRecord(gameId, existing) });
+  }
+  return ok({ updated: true, ...toGameRecord(gameId, item) });
+}
+
 // ── Router ────────────────────────────────────────────────────────────────────
 
 exports.handler = async (event) => {
@@ -200,6 +266,16 @@ exports.handler = async (event) => {
   // PUT /me/profile
   if (method === 'PUT' && rawPath === '/me/profile') {
     return updateProfile(userId, body);
+  }
+
+  // GET|PUT /me/games/{gameId}/score
+  const gameMatch = rawPath.match(/^\/me\/games\/([^/]+)\/score$/);
+  if (gameMatch && (method === 'GET' || method === 'PUT')) {
+    const gameId = gameMatch[1];
+    if (!GAME_IDS.has(gameId)) return err(400, 'Unknown game');
+    return method === 'GET'
+      ? getGameScore(userId, gameId)
+      : saveGameScore(userId, gameId, body);
   }
 
   return err(404, 'Not found');
