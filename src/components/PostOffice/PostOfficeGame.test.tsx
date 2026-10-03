@@ -45,6 +45,15 @@ describe('PostOfficeGame', () => {
     expect(screen.queryByTestId('belt')).not.toBeInTheDocument();
   });
 
+  it('autoStart skips the Start button and begins the countdown', () => {
+    render(<PostOfficeGame onComplete={vi.fn()} random={() => 0} autoStart />);
+    expect(screen.queryByRole('button', { name: /start/i })).not.toBeInTheDocument();
+    expect(screen.getByText('3')).toBeInTheDocument();
+    advance(3000);
+    advance(TICK_MS);
+    expect(screen.getByTestId('active-parcel')).toHaveAttribute('data-code', 'BOS');
+  });
+
   it('renders the belt, HUD and one bucket per region once playing', () => {
     renderGame();
     startRound();
