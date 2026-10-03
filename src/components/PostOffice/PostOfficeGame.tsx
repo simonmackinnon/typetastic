@@ -9,6 +9,7 @@ import Bucket from './Bucket';
 interface Props {
   onComplete: (result: PostOfficeRoundResult) => void;
   random?: () => number;
+  autoStart?: boolean; // skip the Start button and go straight to the countdown
 }
 
 const emptyCounts = (): Record<ParcelRegion, number> => ({ NE: 0, SE: 0, MW: 0, W: 0 });
@@ -18,10 +19,14 @@ function formatTime(seconds: number): string {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
-export default function PostOfficeGame({ onComplete, random }: Props) {
+export default function PostOfficeGame({ onComplete, random, autoStart = false }: Props) {
   const game = usePostOfficeGame({ random });
   const [bucketCounts, setBucketCounts] = useState(emptyCounts);
   const completedRef = useRef(false);
+
+  useEffect(() => {
+    if (autoStart) game.start();
+  }, []);
 
   useEffect(() => {
     if (game.status === 'countdown') {

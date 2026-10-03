@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation } from 'react-router-dom';
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { AuthProvider } from './context/AuthContext';
 import { ProgressProvider } from './context/ProgressContext';
 import Header from './components/common/Header';
@@ -15,6 +15,9 @@ import AboutPage from './pages/AboutPage';
 import CallbackPage from './pages/CallbackPage';
 import PrivacyPage from './pages/PrivacyPage';
 import GamesHubPage from './pages/GamesHubPage';
+
+// Lazy-loaded so framer-motion (~42 KB gzipped) only downloads for players
+const PostOfficeGamePage = lazy(() => import('./pages/PostOfficeGamePage'));
 
 // Forces GamePage to fully remount (resetting all state) when the level changes
 function KeyedGamePage() {
@@ -44,6 +47,14 @@ function AppShell() {
           <Route path="/play/:levelId" element={<KeyedGamePage />} />
           <Route path="/badges" element={<BadgesGrid />} />
           <Route path="/games" element={<GamesHubPage />} />
+          <Route
+            path="/games/post-office"
+            element={
+              <Suspense fallback={<div className="p-8 text-center font-body text-gray-500">Loading…</div>}>
+                <PostOfficeGamePage />
+              </Suspense>
+            }
+          />
           <Route path="/tutorials" element={<TutorialsPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/callback" element={<CallbackPage />} />
