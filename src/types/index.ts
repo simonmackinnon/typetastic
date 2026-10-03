@@ -50,6 +50,15 @@ export interface PlayerStats {
   bestWpm: number;
   totalTimeMinutes: number;
   badgesEarned: string[];
+  bestPostOfficeScore: number;   // best single Post Office round
+  totalParcelsRouted: number;    // cumulative across all Post Office rounds
+}
+
+export interface GameScore {
+  bestScore: number;
+  bestStreak: number;
+  accuracy: number;
+  totalParcelsRouted: number;
 }
 
 export type GameStatus = 'idle' | 'countdown' | 'playing' | 'complete' | 'failed';

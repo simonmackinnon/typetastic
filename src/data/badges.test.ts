@@ -9,11 +9,13 @@ const emptyStats: PlayerStats = {
   bestWpm: 0,
   totalTimeMinutes: 0,
   badgesEarned: [],
+  bestPostOfficeScore: 0,
+  totalParcelsRouted: 0,
 };
 
 describe('BADGES', () => {
-  it('has 12 badges', () => {
-    expect(BADGES).toHaveLength(12);
+  it('has 14 badges', () => {
+    expect(BADGES).toHaveLength(14);
   });
 
   it('each badge has unique id', () => {
@@ -64,5 +66,26 @@ describe('checkNewBadges', () => {
     const stats = { ...emptyStats, levelsCompleted: 20 };
     const result = checkNewBadges(stats, []);
     expect(result.some((b) => b.id === 'touch-type-master')).toBe(true);
+  });
+});
+
+describe('Post Office badges', () => {
+  const ids = (stats: PlayerStats) => checkNewBadges(stats, []).map((b) => b.id);
+
+  it('Mail Sorter unlocks at 50 total parcels routed', () => {
+    expect(ids({ ...emptyStats, totalParcelsRouted: 49 })).not.toContain('mail-sorter');
+    expect(ids({ ...emptyStats, totalParcelsRouted: 50 })).toContain('mail-sorter');
+  });
+
+  it('Speed Sorter unlocks at a best single-round score of 20', () => {
+    expect(ids({ ...emptyStats, bestPostOfficeScore: 19 })).not.toContain('speed-sorter');
+    expect(ids({ ...emptyStats, bestPostOfficeScore: 20 })).toContain('speed-sorter');
+  });
+
+  it('a big Post Office round does not unlock level badges', () => {
+    expect(ids({ ...emptyStats, totalParcelsRouted: 100, bestPostOfficeScore: 30 })).toEqual([
+      'mail-sorter',
+      'speed-sorter',
+    ]);
   });
 });

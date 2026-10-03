@@ -1,9 +1,13 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Package, Play, RotateCcw, Gamepad2, Trophy, PackageX, Target, Flame, Timer, Inbox } from 'lucide-react';
 import PostOfficeGame from '../components/PostOffice/PostOfficeGame';
 import { REGIONS } from '../data/postOfficeParcels';
 import type { PostOfficeRoundResult } from '../hooks/usePostOfficeGame';
+import { useProgress } from '../context/ProgressContext';
+import { useAuth } from '../context/AuthContext';
+
+const GAME_ID = 'post-office';
 
 type Phase = 'instructions' | 'playing' | 'results';
 
@@ -19,6 +23,10 @@ export default function PostOfficeGamePage() {
   const [phase, setPhase] = useState<Phase>('instructions');
   const [round, setRound] = useState(0); // re-keys the game so each round starts fresh
   const [result, setResult] = useState<PostOfficeRoundResult | null>(null);
+  const [previousBest, setPreviousBest] = useState<number | null>(null);
+  const { gameScores, submitGameScore } = useProgress();
+  const { user } = useAuth();
+  const savedBest = gameScores[GAME_ID]?.bestScore ?? null;
 
   const play = () => {
     setResult(null);
@@ -26,10 +34,12 @@ export default function PostOfficeGamePage() {
     setPhase('playing');
   };
 
-  const handleComplete = useCallback((r: PostOfficeRoundResult) => {
+  const handleComplete = (r: PostOfficeRoundResult) => {
+    setPreviousBest(savedBest); // captured before this round updates it
     setResult(r);
     setPhase('results');
-  }, []);
+    submitGameScore(GAME_ID, r);
+  };
 
   // ── Results screen ───────────────────────────────────────────────────────
   if (phase === 'results' && result) {
@@ -44,7 +54,17 @@ export default function PostOfficeGamePage() {
         <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-lg w-full text-center animate-bounce-in">
           <Package size={64} className="text-amber-500 mx-auto mb-4" aria-hidden="true" />
           <h2 className="font-display text-4xl text-purple-700 mb-1">{resultsHeadline(result.score)}</h2>
-          <p className="font-body text-gray-500 mb-6">Post Office round complete</p>
+          <p className="font-body text-gray-500 mb-4">Post Office round complete</p>
+
+          {user && (
+            <p data-testid="personal-best" className="font-body font-bold text-orange-600 mb-6">
+              {previousBest === null
+                ? `First score saved: ${result.score}!`
+                : result.score > previousBest
+                ? `New personal best! (was ${previousBest})`
+                : `Your best is ${previousBest}. Keep going to beat it!`}
+            </p>
+          )}
 
           <div className="grid grid-cols-2 gap-4 mb-8">
             {stats.map(({ label, value, Icon, color, bg, id }) => (
@@ -135,6 +155,11 @@ export default function PostOfficeGamePage() {
                   You have 60 seconds. Parcels come faster and codes get longer as time runs down!
                 </li>
               </ul>
+              {user && savedBest !== null && (
+                <p data-testid="saved-best" className="font-body font-bold text-orange-600 mb-4">
+                  Your best: {savedBest} parcels
+                </p>
+              )}
               <div className="flex flex-wrap justify-center gap-2 mb-8">
                 {REGIONS.map(({ region, name }) => (
                   <span key={region} className="px-3 py-1 rounded-full bg-blue-50 border border-blue-200 font-body text-sm text-blue-700">

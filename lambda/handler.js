@@ -8,8 +8,8 @@
  *   POST /me/badges/:badgeId       → mark badge earned
  *   GET  /me/profile               → get profile
  *   PUT  /me/profile               → update profile
- *   GET  /me/games/:gameId/score   → get best score for a game (404 if never played)
- *   PUT  /me/games/:gameId/score   → save score (only written if it beats the stored best)
+ *   GET  /me/games/:gameId/score   → get best score + running total for a game (404 if never played)
+ *   PUT  /me/games/:gameId/score   → add score to the running total; replace the best only if beaten
  *
  * Runtime: nodejs24.x — @aws-sdk/* included natively, no bundling needed.
  *
@@ -27,6 +27,7 @@ const {
   QueryCommand,
   GetCommand,
   PutCommand,
+  UpdateCommand,
 } = require('@aws-sdk/lib-dynamodb');
 
 const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({}));
@@ -174,10 +175,11 @@ const isCount = (n) => Number.isInteger(n) && n >= 0;
 
 const toGameRecord = (gameId, item) => ({
   gameId,
-  bestScore:  item.bestScore,
-  bestStreak: item.bestStreak,
-  accuracy:   item.accuracy,
-  updatedAt:  item.updatedAt,
+  bestScore:          item.bestScore,
+  bestStreak:         item.bestStreak,
+  accuracy:           item.accuracy,
+  totalParcelsRouted: item.totalParcelsRouted ?? 0,
+  updatedAt:          item.updatedAt,
 });
 
 async function getGameScore(userId, gameId) {
@@ -185,7 +187,7 @@ async function getGameScore(userId, gameId) {
     TableName: TABLE,
     Key: { userId, dataKey: gameKey(gameId) },
   }));
-  if (!Item) return err(404, 'Not found');
+  if (!Item || Item.bestScore === undefined) return err(404, 'Not found');
   return ok(toGameRecord(gameId, Item));
 }
 
@@ -194,35 +196,40 @@ async function saveGameScore(userId, gameId, body) {
   if (!isCount(score) || !isCount(streak) || typeof accuracy !== 'number' || accuracy < 0 || accuracy > 100) {
     return err(400, 'score and streak must be non-negative integers, accuracy 0-100');
   }
+  const Key = { userId, dataKey: gameKey(gameId) };
 
-  const item = {
-    userId,
-    dataKey:    gameKey(gameId),
-    gameId,
-    bestScore:  score,
-    bestStreak: streak,
-    accuracy,
-    updatedAt:  new Date().toISOString(),
-  };
+  // Every round counts toward the running total, whether or not it's a new best.
+  // ADD is atomic, so concurrent rounds can't lose each other's parcels.
+  const { Attributes: afterTotal } = await dynamo.send(new UpdateCommand({
+    TableName: TABLE,
+    Key,
+    UpdateExpression: 'ADD totalParcelsRouted :score',
+    ExpressionAttributeValues: { ':score': score },
+    ReturnValues: 'ALL_NEW',
+  }));
 
   // Same only-if-better rule as saveProgress, but as a conditional write so two
   // concurrent submissions can't let a lower score overwrite a higher one.
   try {
-    await dynamo.send(new PutCommand({
+    const { Attributes } = await dynamo.send(new UpdateCommand({
       TableName: TABLE,
-      Item: item,
-      ConditionExpression: 'attribute_not_exists(dataKey) OR bestScore < :score',
-      ExpressionAttributeValues: { ':score': score },
+      Key,
+      UpdateExpression: 'SET gameId = :gameId, bestScore = :score, bestStreak = :streak, accuracy = :accuracy, updatedAt = :now',
+      ConditionExpression: 'attribute_not_exists(bestScore) OR bestScore < :score',
+      ExpressionAttributeValues: {
+        ':gameId':   gameId,
+        ':score':    score,
+        ':streak':   streak,
+        ':accuracy': accuracy,
+        ':now':      new Date().toISOString(),
+      },
+      ReturnValues: 'ALL_NEW',
     }));
+    return ok({ updated: true, ...toGameRecord(gameId, Attributes) });
   } catch (e) {
     if (e.name !== 'ConditionalCheckFailedException') throw e;
-    const { Item: existing } = await dynamo.send(new GetCommand({
-      TableName: TABLE,
-      Key: { userId, dataKey: gameKey(gameId) },
-    }));
-    return ok({ updated: false, ...toGameRecord(gameId, existing) });
+    return ok({ updated: false, ...toGameRecord(gameId, afterTotal) });
   }
-  return ok({ updated: true, ...toGameRecord(gameId, item) });
 }
 
 // ── Router ────────────────────────────────────────────────────────────────────

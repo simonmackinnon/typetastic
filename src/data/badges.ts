@@ -97,6 +97,22 @@ export const BADGES: Badge[] = [
     color: 'bg-gradient-to-br from-purple-500 to-pink-500',
     condition: (s) => s.bestWpm >= 50,
   },
+  {
+    id: 'mail-sorter',
+    name: 'Mail Sorter',
+    description: 'Sorted 50 parcels in the Post Office!',
+    icon: '📮',
+    color: 'bg-amber-400',
+    condition: (s) => s.totalParcelsRouted >= 50,
+  },
+  {
+    id: 'speed-sorter',
+    name: 'Speed Sorter',
+    description: 'Sorted 20 parcels in a single Post Office round!',
+    icon: '📦',
+    color: 'bg-gradient-to-br from-orange-400 to-pink-500',
+    condition: (s) => s.bestPostOfficeScore >= 20,
+  },
 ];
 
 export function checkNewBadges(stats: PlayerStats, alreadyEarned: string[]): Badge[] {
