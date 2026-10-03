@@ -90,10 +90,10 @@ test.describe('Badges Page', () => {
     await expect(page.getByRole('heading', { name: /badge cabinet/i })).toBeVisible();
   });
 
-  test('shows 12 badge cards', async ({ page }) => {
+  test('shows 14 badge cards', async ({ page }) => {
     await page.goto('/badges');
     const badges = await page.locator('[data-testid^="badge-"]').all();
-    expect(badges).toHaveLength(12);
+    expect(badges).toHaveLength(14);
   });
 
   test('unearned badges are visually distinct', async ({ page }) => {

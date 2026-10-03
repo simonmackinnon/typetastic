@@ -28,6 +28,8 @@ const emptyStats: PlayerStats = {
   bestWpm: 0,
   totalTimeMinutes: 0,
   badgesEarned: [],
+  bestPostOfficeScore: 0,
+  totalParcelsRouted: 0,
 };
 
 function makeProgressCtx(progress: Record<string, { stars: 0 | 1 | 2 | 3 }> = {}) {

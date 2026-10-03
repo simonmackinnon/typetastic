@@ -3,73 +3,19 @@
  * Lambda-level integration tests for lambda/handler.js.
  *
  * Each test sends API Gateway HTTP API (payload v2) events through the real
- * handler, which talks to an in-memory fake of the DynamoDB document client.
- * The fake keeps state across calls, so multi-request flows (save, then a
- * lower score, then read back) behave like they would against the table.
+ * handler, which talks to the in-memory DynamoDB fake in ./fakeDynamo.
  *
  * Not covered here: the API Gateway JWT authorizer itself (the handler's own
  * missing-claims 401 is covered) and real DynamoDB.
  */
-import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
-import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterAll } from 'vitest';
+import { installFakeDynamo, keyOf, loadHandler } from './fakeDynamo';
 
-const require = createRequire(import.meta.url);
+const { table, restore } = installFakeDynamo();
+const handler = loadHandler();
 
-// Load the SDK and handler through CommonJS, exactly as Lambda does, so the
-// prototype we stub is the same one handler.js uses.
-const { DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand } = require('@aws-sdk/lib-dynamodb');
-
-process.env.TABLE_NAME = 'tt-user-data-test';
-const { handler } = require('../../lambda/handler.js');
-
-// ── In-memory DynamoDB fake ──────────────────────────────────────────────────
-
-type Item = Record<string, unknown> & { userId: string; dataKey: string };
-const table = new Map<string, Item>();
-const keyOf = (userId: string, dataKey: string) => `${userId}|${dataKey}`;
-
-function conditionalCheckFailed(): Error {
-  const e = new Error('The conditional request failed');
-  e.name = 'ConditionalCheckFailedException';
-  return e;
-}
-
-// Supports only the condition expressions handler.js uses; anything else
-// throws so a handler change can't silently pass against a too-lenient fake.
-function conditionHolds(expr: string, existing: Item | undefined, values: Record<string, unknown> = {}): boolean {
-  if (expr === 'attribute_not_exists(dataKey)') return !existing;
-  if (expr === 'attribute_not_exists(dataKey) OR bestScore < :score') {
-    return !existing || (existing.bestScore as number) < (values[':score'] as number);
-  }
-  throw new Error(`Fake DynamoDB: unsupported ConditionExpression "${expr}"`);
-}
-
-const sendSpy = vi.spyOn(DynamoDBDocumentClient.prototype, 'send').mockImplementation(async (command: unknown) => {
-  const { input } = command as { input: Record<string, any> };
-  expect(input.TableName).toBe('tt-user-data-test');
-
-  if (command instanceof GetCommand) {
-    return { Item: table.get(keyOf(input.Key.userId, input.Key.dataKey)) };
-  }
-  if (command instanceof PutCommand) {
-    const item = input.Item as Item;
-    const existing = table.get(keyOf(item.userId, item.dataKey));
-    if (input.ConditionExpression && !conditionHolds(input.ConditionExpression, existing, input.ExpressionAttributeValues)) {
-      throw conditionalCheckFailed();
-    }
-    table.set(keyOf(item.userId, item.dataKey), { ...item });
-    return {};
-  }
-  if (command instanceof QueryCommand) {
-    const { ':u': userId, ':prefix': prefix } = input.ExpressionAttributeValues;
-    const Items = [...table.values()].filter((i) => i.userId === userId && i.dataKey.startsWith(prefix));
-    return { Items };
-  }
-  throw new Error(`Fake DynamoDB: unsupported command ${(command as object).constructor.name}`);
-});
-
-afterAll(() => sendSpy.mockRestore());
+afterAll(() => restore());
 
 // ── API Gateway event helpers ────────────────────────────────────────────────
 
@@ -81,7 +27,7 @@ function call(method: string, path: string, { userId = 'user-1', body }: { userI
       authorizer: userId ? { jwt: { claims: { sub: userId } } } : undefined,
     },
     body: body === undefined ? undefined : JSON.stringify(body),
-  }).then((res: { statusCode: number; body: string }) => ({ status: res.statusCode, json: JSON.parse(res.body) }));
+  }).then((res) => ({ status: res.statusCode, json: JSON.parse(res.body) }));
 }
 
 const SCORE_PATH = '/me/games/post-office/score';
@@ -117,6 +63,7 @@ describe('GET/PUT /me/games/:gameId/score', () => {
       bestScore: 12,
       bestStreak: 7,
       accuracy: 91,
+      totalParcelsRouted: 12,
       updatedAt: expect.any(String),
     });
     expect(table.has(keyOf('user-1', 'game#post-office#best'))).toBe(true);
@@ -164,6 +111,21 @@ describe('GET/PUT /me/games/:gameId/score', () => {
     const res = await call('PUT', SCORE_PATH, { body });
     expect(res.status).toBe(400);
     expect(table.size).toBe(0);
+  });
+
+  it('every round adds to the running total, even when it does not beat the best', async () => {
+    await call('PUT', SCORE_PATH, { body: round(12) });
+    const lower = await call('PUT', SCORE_PATH, { body: round(5) });
+    expect(lower.json).toMatchObject({ updated: false, bestScore: 12, totalParcelsRouted: 17 });
+    const higher = await call('PUT', SCORE_PATH, { body: round(20) });
+    expect(higher.json).toMatchObject({ updated: true, bestScore: 20, totalParcelsRouted: 37 });
+    expect((await call('GET', SCORE_PATH)).json).toMatchObject({ bestScore: 20, totalParcelsRouted: 37 });
+  });
+
+  it('a first round scoring 0 still creates a record', async () => {
+    const res = await call('PUT', SCORE_PATH, { body: round(0, 0, 0) });
+    expect(res.json).toMatchObject({ updated: true, bestScore: 0, totalParcelsRouted: 0 });
+    expect((await call('GET', SCORE_PATH)).status).toBe(200);
   });
 
   it("keeps each user's scores separate", async () => {
