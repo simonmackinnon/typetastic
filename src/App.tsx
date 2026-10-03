@@ -14,6 +14,7 @@ import TutorialsPage from './pages/TutorialsPage';
 import AboutPage from './pages/AboutPage';
 import CallbackPage from './pages/CallbackPage';
 import PrivacyPage from './pages/PrivacyPage';
+import GamesHubPage from './pages/GamesHubPage';
 
 // Forces GamePage to fully remount (resetting all state) when the level changes
 function KeyedGamePage() {
@@ -42,6 +43,7 @@ function AppShell() {
           <Route path="/map" element={<LevelMap />} />
           <Route path="/play/:levelId" element={<KeyedGamePage />} />
           <Route path="/badges" element={<BadgesGrid />} />
+          <Route path="/games" element={<GamesHubPage />} />
           <Route path="/tutorials" element={<TutorialsPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/callback" element={<CallbackPage />} />
