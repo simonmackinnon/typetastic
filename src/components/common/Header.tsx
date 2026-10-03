@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useState } from 'react';
 import AuthModal from '../Auth/AuthModal';
-import { Map, GraduationCap, Award, User, Rocket, LogOut, LogIn, type LucideIcon } from 'lucide-react';
+import { Map, GraduationCap, Award, Gamepad2, User, Rocket, LogOut, LogIn, type LucideIcon } from 'lucide-react';
 
 export default function Header() {
   const { user, logout } = useAuth();
@@ -44,6 +44,7 @@ export default function Header() {
           <nav className="flex items-center gap-2">
             {navLink('/map', 'Levels', Map)}
             {navLink('/tutorials', 'How to Type', GraduationCap)}
+            {navLink('/games', 'Games', Gamepad2)}
             {navLink('/badges', 'Badges', Award)}
             {user ? (
               <div className="flex items-center gap-2">

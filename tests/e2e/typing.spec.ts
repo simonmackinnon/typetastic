@@ -105,7 +105,39 @@ test.describe('Badges Page', () => {
   });
 });
 
+test.describe('Games Hub', () => {
+  test('header Games link navigates to /games', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('header').getByRole('link', { name: 'Games' }).click();
+    await expect(page).toHaveURL(/\/games$/);
+    await expect(page.getByRole('heading', { name: 'Games', exact: true })).toBeVisible();
+  });
+
+  test('shows Post Office card linking to its game', async ({ page }) => {
+    await page.goto('/games');
+    await expect(page.getByTestId('game-post-office')).toHaveAttribute('href', '/games/post-office');
+  });
+
+  test('coming-soon cards render disabled', async ({ page }) => {
+    await page.goto('/games');
+    for (const id of ['rockets', 'cars', 'trains', 'factories']) {
+      const card = page.getByTestId(`game-${id}`);
+      await expect(card).toBeVisible();
+      await expect(card).toHaveAttribute('aria-disabled', 'true');
+      await expect(card).toContainText(/coming soon/i);
+    }
+  });
+});
+
 test.describe('Navigation', () => {
+  test('header Levels and Badges links still work', async ({ page }) => {
+    await page.goto('/games');
+    await page.locator('header').getByRole('link', { name: 'Levels' }).click();
+    await expect(page).toHaveURL(/\/map$/);
+    await page.locator('header').getByRole('link', { name: 'Badges' }).click();
+    await expect(page).toHaveURL(/\/badges$/);
+  });
+
   test('header logo navigates to home', async ({ page }) => {
     await page.goto('/map');
     // Use the header logo link specifically (it's the first TypeStar link)
