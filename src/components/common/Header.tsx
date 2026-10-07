@@ -53,17 +53,19 @@ export default function Header() {
                 </span>
                 <button
                   onClick={logout}
+                  aria-label="Log out"
                   className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full font-body font-bold text-sm text-white hover:bg-white/20 transition-all"
                 >
-                  <LogOut size={14} /><span className="hidden sm:inline">Log out</span>
+                  <LogOut size={14} aria-hidden="true" /><span className="hidden sm:inline">Log out</span>
                 </button>
               </div>
             ) : (
               <button
                 onClick={() => setShowAuth(true)}
+                aria-label="Log in"
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full font-body font-bold text-sm bg-white text-purple-700 shadow hover:shadow-md transition-all"
               >
-                <LogIn size={14} /><span className="hidden sm:inline">Log in</span>
+                <LogIn size={14} aria-hidden="true" /><span className="hidden sm:inline">Log in</span>
               </button>
             )}
           </nav>
