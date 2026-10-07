@@ -39,3 +39,32 @@ test.describe('Auth Modal', () => {
     await expect(page.getByPlaceholder('••••••••')).toBeVisible();
   });
 });
+
+// TYP-10: below the `sm` breakpoint the header auth buttons are icon-only, so
+// they must carry an accessible name. Runs at a phone viewport so CI's
+// desktop Chromium project covers it too.
+test.describe('Header auth buttons on a phone', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test('Log in button has an accessible name and opens the modal', async ({ page }) => {
+    await page.goto('/');
+    const logIn = page.locator('header').getByRole('button', { name: 'Log in' });
+    await expect(logIn).toBeVisible();
+    await logIn.click();
+    await expect(page.getByRole('dialog', { name: /sign in to TypeStar/i })).toBeVisible();
+  });
+
+  test('Log out button has an accessible name when signed in', async ({ page }) => {
+    // Fake signed-in Google session (the app reads ts_oauth_tokens before Cognito)
+    const b64 = (o: unknown) => Buffer.from(JSON.stringify(o)).toString('base64url');
+    const idToken = `${b64({ alg: 'none' })}.${b64({ sub: 'e2e-kid', email: 'e2e-kid@example.com' })}.sig`;
+    const tokens = JSON.stringify({
+      id_token: idToken, access_token: 'x', refresh_token: 'x', expires_at: Date.UTC(2100, 0, 1),
+    });
+    await page.addInitScript((t) => localStorage.setItem('ts_oauth_tokens', t), tokens);
+    await page.route(/\/me\//, (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' }, body: '[]' }));
+    await page.goto('/');
+    await expect(page.locator('header').getByRole('button', { name: 'Log out' })).toBeVisible();
+  });
+});

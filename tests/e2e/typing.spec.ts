@@ -49,7 +49,10 @@ test.describe('Level Map', () => {
 });
 
 test.describe('Game Page', () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page, isMobile }, testInfo) => {
+    // The game itself is desktop-only (phones see the keyboard gate, tested
+    // below); the back button exists in both layouts so it runs everywhere.
+    test.skip(isMobile && testInfo.title !== 'back button returns to map', 'game needs a physical keyboard');
     // Pre-dismiss the level 1 tutorial so it doesn't block game page tests
     await page.addInitScript(() => {
       localStorage.setItem('tt_dismissed', JSON.stringify(['01']));
@@ -81,6 +84,17 @@ test.describe('Game Page', () => {
     // The back button is a <button> element (uses navigate()), not a link
     await page.getByRole('button', { name: /back/i }).click();
     await expect(page).toHaveURL(/\/map/);
+  });
+});
+
+test.describe('Game Page on a phone', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test('shows the keyboard-required gate instead of the game', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('tt_dismissed', JSON.stringify(['01'])));
+    await page.goto('/play/01');
+    await expect(page.getByRole('heading', { name: /need a keyboard to play/i })).toBeVisible();
+    await expect(page.getByLabel('Virtual keyboard')).toBeHidden();
   });
 });
 
