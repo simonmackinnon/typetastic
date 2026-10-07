@@ -171,6 +171,21 @@ describe('Post Office score persistence round trip', () => {
     expect(sibling.result.current.stats.bestPostOfficeScore).toBe(0);
   });
 
+  it('a level badge earned by a submission is persisted on that submission (TYP-9)', async () => {
+    const page = await loadPage(KID);
+    await act(() => page.result.current.submitResult('01', { accuracy: 98, wpm: 18, stars: 3, timeSeconds: 30, errorCount: 0 }));
+    expect(requests).toContain('POST /me/badges/perfect-typist');
+    expect(table.has(keyOf('kid-1', 'badge#perfect-typist'))).toBe(true);
+    page.unmount();
+
+    // Replaying the same level must not create another completion or badge write
+    const replay = await loadPage(KID);
+    await waitFor(() => expect(replay.result.current.earnedBadges).toContain('perfect-typist'));
+    await act(() => replay.result.current.submitResult('01', { accuracy: 90, wpm: 15, stars: 1, timeSeconds: 30, errorCount: 3 }));
+    expect(replay.result.current.stats).toMatchObject({ levelsCompleted: 1, totalStars: 3 });
+    expect(requests.filter((r) => r.startsWith('POST /me/badges/'))).toEqual([]);
+  });
+
   it('level progress still round-trips alongside game scores', async () => {
     const page = await loadPage(KID);
     await act(() => page.result.current.submitResult('01', { accuracy: 96, wpm: 18, stars: 2, timeSeconds: 30, errorCount: 1 }));
