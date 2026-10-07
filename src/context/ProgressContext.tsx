@@ -57,12 +57,8 @@ function reducer(state: ProgressState, action: Action): ProgressState {
         gameScores: action.gameScores,
       };
     case 'SAVE_PROGRESS': {
-      const existing = state.progress[action.entry.levelId];
-      const better =
-        !existing || action.entry.stars > existing.stars;
-      return better
-        ? { ...state, progress: { ...state.progress, [action.entry.levelId]: action.entry } }
-        : state;
+      const progress = applyLevelResult(state.progress, action.entry);
+      return progress === state.progress ? state : { ...state, progress };
     }
     case 'SAVE_GAME_ROUND':
       return {
@@ -85,6 +81,29 @@ function reducer(state: ProgressState, action: Action): ProgressState {
     default:
       return state;
   }
+}
+
+// A level result only replaces the stored one when it earns more stars.
+// Returns the same object when nothing changes.
+export function applyLevelResult(
+  progress: Record<string, LevelProgress>,
+  entry: LevelProgress,
+): Record<string, LevelProgress> {
+  const existing = progress[entry.levelId];
+  if (existing && entry.stars <= existing.stars) return progress;
+  return { ...progress, [entry.levelId]: entry };
+}
+
+// The level-derived part of PlayerStats, shared by the stats memo and the
+// badge check in submitResult so the two can't disagree.
+export function levelStats(progress: Record<string, LevelProgress>) {
+  const entries = Object.values(progress);
+  return {
+    totalStars: entries.reduce((s, e) => s + e.stars, 0),
+    levelsCompleted: entries.filter((e) => e.stars > 0).length,
+    highestLevel: entries.reduce((m, e) => Math.max(m, parseInt(e.levelId, 10)), 0),
+    bestWpm: entries.reduce((m, e) => Math.max(m, e.bestWpm), 0),
+  };
 }
 
 // Optimistic local version of the server's rule: every round adds to the
@@ -132,12 +151,8 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
   }, [load]);
 
   const stats: PlayerStats = React.useMemo(() => {
-    const entries = Object.values(state.progress);
     return {
-      totalStars: entries.reduce((s, e) => s + e.stars, 0),
-      levelsCompleted: entries.filter((e) => e.stars > 0).length,
-      highestLevel: entries.reduce((m, e) => Math.max(m, parseInt(e.levelId, 10)), 0),
-      bestWpm: entries.reduce((m, e) => Math.max(m, e.bestWpm), 0),
+      ...levelStats(state.progress),
       totalTimeMinutes: 0,
       badgesEarned: state.earnedBadges,
       ...gameStats(state.gameScores),
@@ -145,7 +160,6 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
   }, [state.progress, state.earnedBadges, state.gameScores]);
 
   async function submitResult(levelId: string, result: TypingResult) {
-    const level = parseInt(levelId, 10);
     const entry: LevelProgress = {
       levelId,
       stars: result.stars,
@@ -159,12 +173,15 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
       await saveProgress(levelId, entry);
     }
 
-    // After saving, recompute stats and check for new badges
+    // Check badges against the stats this submission actually produces: the
+    // progress map after SAVE_PROGRESS's only-if-more-stars rule.
+    const after = levelStats(applyLevelResult(state.progress, entry));
     const updatedStats: PlayerStats = {
       ...stats,
-      highestLevel: Math.max(stats.highestLevel, level),
-      bestWpm: Math.max(stats.bestWpm, result.wpm),
-      levelsCompleted: stats.levelsCompleted + (entry.stars > 0 ? 1 : 0),
+      ...after,
+      // Any completed run's WPM counts toward the speed badges, even when its
+      // stars didn't beat the stored result (unchanged from before TYP-9).
+      bestWpm: Math.max(after.bestWpm, result.wpm),
     };
     const newlyUnlocked = checkNewBadges(updatedStats, state.earnedBadges);
     if (newlyUnlocked.length > 0) {
