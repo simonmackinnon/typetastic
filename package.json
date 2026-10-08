@@ -13,6 +13,7 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "test:dev-smoke": "playwright test --config playwright.dev-smoke.config.ts",
     "lint": "tsc --noEmit",
     "generate:audio": "tsx scripts/generate-audio.ts"
   },
