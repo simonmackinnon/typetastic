@@ -37,7 +37,7 @@ resource "aws_cognito_user_pool" "main" {
 # ── Cognito Domain (required for OAuth hosted UI and IdP callbacks) ───────────
 
 resource "aws_cognito_user_pool_domain" "main" {
-  domain       = "typestar-auth"   # globally unique prefix → typestar-auth.auth.<region>.amazoncognito.com
+  domain       = "typestar-auth" # globally unique prefix → typestar-auth.auth.<region>.amazoncognito.com
   user_pool_id = aws_cognito_user_pool.main.id
 }
 
@@ -93,9 +93,9 @@ resource "aws_cognito_user_pool_client" "spa" {
 
   supported_identity_providers = ["COGNITO", "Google"]
 
-  access_token_validity  = 1   # hours
-  id_token_validity      = 1   # hours
-  refresh_token_validity = 30  # days
+  access_token_validity  = 1  # hours
+  id_token_validity      = 1  # hours
+  refresh_token_validity = 30 # days
 
   token_validity_units {
     access_token  = "hours"

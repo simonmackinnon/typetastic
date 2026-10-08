@@ -36,7 +36,7 @@ variable "google_client_secret" {
 variable "allowed_origins" {
   description = "CORS origins allowed by API Gateway"
   type        = list(string)
-  default     = [
+  default = [
     "https://typestar.theclouddevopslearningblog.com",
     "http://localhost:5173",
     "http://localhost:4173",

@@ -6,7 +6,6 @@ coverage/
 playwright-report/
 test-results/
 infra/.terraform/
-infra/.terraform.lock.hcl
 infra/.lambda_build/
 infra/terraform.tfstate
 infra/terraform.tfstate.backup
