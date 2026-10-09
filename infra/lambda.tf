@@ -8,7 +8,7 @@ resource "aws_lambda_function" "api" {
   function_name    = "${local.project}-api"
   role             = aws_iam_role.lambda.arn
   handler          = "handler.handler"
-  runtime          = "nodejs22.x"
+  runtime          = "nodejs24.x"
   filename         = data.archive_file.lambda.output_path
   source_code_hash = data.archive_file.lambda.output_base64sha256
   timeout          = 10
