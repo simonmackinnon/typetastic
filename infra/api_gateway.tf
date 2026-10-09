@@ -47,6 +47,7 @@ locals {
     "POST /me/badges/{badgeId}",
     "GET /me/profile",
     "PUT /me/profile",
+    "GET /me/games",
     "GET /me/games/{gameId}/score",
     "PUT /me/games/{gameId}/score",
   ])

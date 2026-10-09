@@ -63,6 +63,7 @@ describe('GET/PUT /me/games/:gameId/score', () => {
       bestScore: 12,
       bestStreak: 7,
       accuracy: 91,
+      totalScore: 12,
       totalParcelsRouted: 12,
       updatedAt: expect.any(String),
     });
@@ -91,9 +92,9 @@ describe('GET/PUT /me/games/:gameId/score', () => {
   });
 
   it('rejects an unrecognised gameId without writing anything', async () => {
-    const put = await call('PUT', '/me/games/rockets/score', { body: round(5) });
+    const put = await call('PUT', '/me/games/cars/score', { body: round(5) });
     expect(put.status).toBe(400);
-    expect((await call('GET', '/me/games/rockets/score')).status).toBe(400);
+    expect((await call('GET', '/me/games/cars/score')).status).toBe(400);
     // dataKey-injection style ids are rejected the same way
     expect((await call('PUT', '/me/games/post-office%23best/score', { body: round(5) })).status).toBe(400);
     expect(table.size).toBe(0);
@@ -140,6 +141,116 @@ describe('GET/PUT /me/games/:gameId/score', () => {
   });
 });
 
+// ── TYP-16: games platform ───────────────────────────────────────────────────
+
+describe('games platform (TYP-16)', () => {
+  const path = (gameId: string) => `/me/games/${gameId}/score`;
+
+  it('accepts rockets and factories', async () => {
+    expect((await call('PUT', path('rockets'), { body: round(300) })).status).toBe(200);
+    expect((await call('PUT', path('factories'), { body: round(8) })).status).toBe(200);
+    expect((await call('GET', path('rockets'))).json).toMatchObject({ gameId: 'rockets', bestScore: 300 });
+  });
+
+  it.each([
+    ['post-office', 100],
+    ['rockets', 1000],
+    ['factories', 100],
+  ])('%s: a score at the maximum (%i) is accepted, one above is rejected without writing', async (gameId, max) => {
+    expect((await call('PUT', path(gameId), { body: round(max + 1) })).status).toBe(400);
+    expect(table.has(keyOf('user-1', `game#${gameId}#best`))).toBe(false);
+    const ok = await call('PUT', path(gameId), { body: round(max) });
+    expect(ok.status).toBe(200);
+    expect(ok.json).toMatchObject({ bestScore: max, totalScore: max });
+  });
+
+  it('keeps a separate running total per game', async () => {
+    await call('PUT', path('post-office'), { body: round(10) });
+    await call('PUT', path('post-office'), { body: round(5) });
+    await call('PUT', path('rockets'), { body: round(250) });
+    await call('PUT', path('factories'), { body: round(7) });
+    expect((await call('GET', path('post-office'))).json).toMatchObject({ bestScore: 10, totalScore: 15 });
+    expect((await call('GET', path('rockets'))).json).toMatchObject({ bestScore: 250, totalScore: 250 });
+    expect((await call('GET', path('factories'))).json).toMatchObject({ bestScore: 7, totalScore: 7 });
+  });
+
+  it('only Post Office responses carry the legacy totalParcelsRouted field', async () => {
+    const po = await call('PUT', path('post-office'), { body: round(10) });
+    const rk = await call('PUT', path('rockets'), { body: round(10) });
+    expect(po.json).toMatchObject({ totalScore: 10, totalParcelsRouted: 10 });
+    expect(rk.json.totalScore).toBe(10);
+    expect(rk.json).not.toHaveProperty('totalParcelsRouted');
+  });
+
+  describe('legacy Post Office records', () => {
+    // A record as TYP-7 wrote it: total stored as totalParcelsRouted.
+    const seedLegacy = (total = 40) =>
+      table.set(keyOf('user-1', 'game#post-office#best'), {
+        userId: 'user-1', dataKey: 'game#post-office#best', gameId: 'post-office',
+        bestScore: 15, bestStreak: 6, accuracy: 92, totalParcelsRouted: total, updatedAt: '2026-10-05T00:00:00Z',
+      });
+
+    it('GET reads the legacy total as totalScore before any migration', async () => {
+      seedLegacy(40);
+      expect((await call('GET', path('post-office'))).json).toMatchObject({ totalScore: 40, totalParcelsRouted: 40 });
+    });
+
+    it('the next PUT migrates it: 40 + 20 = totalScore 60, legacy attribute removed', async () => {
+      seedLegacy(40);
+      const res = await call('PUT', path('post-office'), { body: round(20) });
+      expect(res.json).toMatchObject({ updated: true, bestScore: 20, totalScore: 60, totalParcelsRouted: 60 });
+      const stored = table.get(keyOf('user-1', 'game#post-office#best'))!;
+      expect(stored.totalScore).toBe(60);
+      expect(stored).not.toHaveProperty('totalParcelsRouted');
+    });
+
+    it('migration is idempotent across repeated PUTs and keeps the best', async () => {
+      seedLegacy(40);
+      await call('PUT', path('post-office'), { body: round(5) });  // migrate + add -> 45
+      await call('PUT', path('post-office'), { body: round(5) });  // already migrated -> 50
+      const stored = table.get(keyOf('user-1', 'game#post-office#best'))!;
+      expect(stored).toMatchObject({ totalScore: 50, bestScore: 15 });
+      expect(stored).not.toHaveProperty('totalParcelsRouted');
+    });
+  });
+
+  describe('GET /me/games', () => {
+    it('requires authentication', async () => {
+      expect((await call('GET', '/me/games', { userId: null })).status).toBe(401);
+    });
+
+    it('returns an empty list when nothing has been played', async () => {
+      expect((await call('GET', '/me/games')).json).toEqual([]);
+    });
+
+    it("returns every game record for the caller only, never level or badge items", async () => {
+      await call('PUT', path('post-office'), { body: round(10) });
+      await call('PUT', path('rockets'), { body: round(300) });
+      await call('PUT', '/me/progress/01', { body: { stars: 2, bestAccuracy: 95, bestWpm: 20 } });
+      await call('POST', '/me/badges/first-keystroke');
+      await call('PUT', path('factories'), { userId: 'user-2', body: round(9) });
+
+      const res = await call('GET', '/me/games');
+      expect(res.status).toBe(200);
+      const byGame = Object.fromEntries((res.json as { gameId: string }[]).map((r) => [r.gameId, r]));
+      expect(Object.keys(byGame).sort()).toEqual(['post-office', 'rockets']);
+      expect(byGame['post-office']).toMatchObject({ bestScore: 10, totalScore: 10, totalParcelsRouted: 10 });
+      expect(byGame.rockets).toMatchObject({ bestScore: 300, totalScore: 300, bestStreak: 3, accuracy: 90 });
+      expect(byGame.rockets).not.toHaveProperty('totalParcelsRouted');
+    });
+
+    it('includes a not-yet-migrated legacy record with its total', async () => {
+      table.set(keyOf('user-1', 'game#post-office#best'), {
+        userId: 'user-1', dataKey: 'game#post-office#best', gameId: 'post-office',
+        bestScore: 15, bestStreak: 6, accuracy: 92, totalParcelsRouted: 40, updatedAt: '2026-10-05T00:00:00Z',
+      });
+      expect((await call('GET', '/me/games')).json).toEqual([
+        expect.objectContaining({ gameId: 'post-office', bestScore: 15, totalScore: 40 }),
+      ]);
+    });
+  });
+});
+
 // ── Regression: existing routes ──────────────────────────────────────────────
 
 describe('existing routes are unaffected', () => {
@@ -183,6 +294,7 @@ describe('infra/api_gateway.tf', () => {
     const routes = [...tf.matchAll(/"((?:GET|PUT|POST|DELETE) \/[^"]+)"/g)].map((m) => m[1]);
     expect(routes).toContain('GET /me/games/{gameId}/score');
     expect(routes).toContain('PUT /me/games/{gameId}/score');
+    expect(routes).toContain('GET /me/games');
     expect(tf).toMatch(/authorization_type\s*=\s*"JWT"/);
   });
 });

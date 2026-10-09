@@ -37,6 +37,8 @@ function conditionHolds(expr: string, existing: Item | undefined, values: Record
       return !existing || (existing.bestScore as number) < (values[':score'] as number);
     case 'attribute_not_exists(bestScore) OR bestScore < :score':
       return existing?.bestScore === undefined || (existing.bestScore as number) < (values[':score'] as number);
+    case 'attribute_exists(totalParcelsRouted) AND attribute_not_exists(totalScore)':
+      return existing?.totalParcelsRouted !== undefined && existing?.totalScore === undefined;
     default:
       throw new Error(`Fake DynamoDB: unsupported ConditionExpression "${expr}"`);
   }
@@ -48,14 +50,16 @@ function applyUpdate(expr: string, item: Item, values: Record<string, unknown>):
     const [, attr, placeholder] = add;
     return { ...item, [attr]: ((item[attr] as number) ?? 0) + (values[placeholder] as number) };
   }
-  const set = expr.match(/^SET (.+)$/);
+  // SET a = :val[, b = otherAttr …] [REMOVE c[, d …]]
+  const set = expr.match(/^SET (.+?)(?: REMOVE (.+))?$/);
   if (set) {
     const next = { ...item };
     for (const assignment of set[1].split(',')) {
-      const m = assignment.trim().match(/^(\w+) = (:\w+)$/);
+      const m = assignment.trim().match(/^(\w+) = (:?\w+)$/);
       if (!m) throw new Error(`Fake DynamoDB: unsupported SET clause "${assignment}"`);
-      next[m[1]] = values[m[2]];
+      next[m[1]] = m[2].startsWith(':') ? values[m[2]] : item[m[2]];
     }
+    for (const attr of set[2]?.split(',') ?? []) delete next[attr.trim()];
     return next;
   }
   throw new Error(`Fake DynamoDB: unsupported UpdateExpression "${expr}"`);
