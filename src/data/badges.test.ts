@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { BADGES, checkNewBadges } from './badges';
+import { zeroGameStats } from './games';
 import type { PlayerStats } from '../types';
 
 const emptyStats: PlayerStats = {
@@ -9,8 +10,7 @@ const emptyStats: PlayerStats = {
   bestWpm: 0,
   totalTimeMinutes: 0,
   badgesEarned: [],
-  bestPostOfficeScore: 0,
-  totalParcelsRouted: 0,
+  games: zeroGameStats(),
 };
 
 describe('BADGES', () => {
@@ -71,19 +71,23 @@ describe('checkNewBadges', () => {
 
 describe('Post Office badges', () => {
   const ids = (stats: PlayerStats) => checkNewBadges(stats, []).map((b) => b.id);
+  const po = (best: number, total: number): PlayerStats => ({
+    ...emptyStats,
+    games: { ...zeroGameStats(), 'post-office': { best, total } },
+  });
 
   it('Mail Sorter unlocks at 50 total parcels routed', () => {
-    expect(ids({ ...emptyStats, totalParcelsRouted: 49 })).not.toContain('mail-sorter');
-    expect(ids({ ...emptyStats, totalParcelsRouted: 50 })).toContain('mail-sorter');
+    expect(ids(po(0, 49))).not.toContain('mail-sorter');
+    expect(ids(po(0, 50))).toContain('mail-sorter');
   });
 
   it('Speed Sorter unlocks at a best single-round score of 20', () => {
-    expect(ids({ ...emptyStats, bestPostOfficeScore: 19 })).not.toContain('speed-sorter');
-    expect(ids({ ...emptyStats, bestPostOfficeScore: 20 })).toContain('speed-sorter');
+    expect(ids(po(19, 0))).not.toContain('speed-sorter');
+    expect(ids(po(20, 0))).toContain('speed-sorter');
   });
 
   it('a big Post Office round does not unlock level badges', () => {
-    expect(ids({ ...emptyStats, totalParcelsRouted: 100, bestPostOfficeScore: 30 })).toEqual([
+    expect(ids(po(30, 100))).toEqual([
       'mail-sorter',
       'speed-sorter',
     ]);

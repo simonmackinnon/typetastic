@@ -6,8 +6,10 @@ import { REGIONS } from '../data/postOfficeParcels';
 import type { PostOfficeRoundResult } from '../hooks/usePostOfficeGame';
 import { useProgress } from '../context/ProgressContext';
 import { useAuth } from '../context/AuthContext';
+import { GAMES_BY_ID, type GameId } from '../data/games';
 
-const GAME_ID = 'post-office';
+const GAME_ID: GameId = 'post-office';
+const GAME = GAMES_BY_ID[GAME_ID];
 
 type Phase = 'instructions' | 'playing' | 'results';
 
@@ -157,7 +159,7 @@ export default function PostOfficeGamePage() {
               </ul>
               {user && savedBest !== null && (
                 <p data-testid="saved-best" className="font-body font-bold text-orange-600 mb-4">
-                  Your best: {savedBest} parcels
+                  Your best: {savedBest} {GAME.unit.many}
                 </p>
               )}
               <div className="flex flex-wrap justify-center gap-2 mb-8">

@@ -103,7 +103,7 @@ export const BADGES: Badge[] = [
     description: 'Sorted 50 parcels in the Post Office!',
     icon: '📮',
     color: 'bg-amber-400',
-    condition: (s) => s.totalParcelsRouted >= 50,
+    condition: (s) => s.games['post-office'].total >= 50,
   },
   {
     id: 'speed-sorter',
@@ -111,7 +111,7 @@ export const BADGES: Badge[] = [
     description: 'Sorted 20 parcels in a single Post Office round!',
     icon: '📦',
     color: 'bg-gradient-to-br from-orange-400 to-pink-500',
-    condition: (s) => s.bestPostOfficeScore >= 20,
+    condition: (s) => s.games['post-office'].best >= 20,
   },
 ];
 

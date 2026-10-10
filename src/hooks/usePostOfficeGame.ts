@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
-import type { GameStatus } from '../types';
+import type { GameRoundResult, GameStatus } from '../types';
 import { parcelsForTier, type CityCodeEntry, type ParcelRegion, type ParcelTier } from '../data/postOfficeParcels';
 
 export const ROUND_MS = 60_000;
@@ -9,7 +9,7 @@ export const SPAWN_START_MS = 3_000;    // spawn interval at the start of the ro
 export const SPAWN_END_MS = 1_200;      // ...ramping linearly down to this by the end
 export const MAX_PARCELS = 5;           // cap on concurrently-rendered parcels
 
-export interface PostOfficeRoundResult {
+export interface PostOfficeRoundResult extends GameRoundResult {
   score: number;         // parcels routed correctly
   parcelsMissed: number;
   accuracy: number;      // correct keystrokes / total keystrokes, as a 0-100 percentage
