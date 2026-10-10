@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import LevelMap from './LevelMap';
 import { ProgressContext } from '../../context/ProgressContext';
+import { zeroGameStats } from '../../data/games';
 import type { PlayerStats } from '../../types';
 
 vi.mock('../../services/auth', () => ({
@@ -28,8 +29,7 @@ const emptyStats: PlayerStats = {
   bestWpm: 0,
   totalTimeMinutes: 0,
   badgesEarned: [],
-  bestPostOfficeScore: 0,
-  totalParcelsRouted: 0,
+  games: zeroGameStats(),
 };
 
 function makeProgressCtx(progress: Record<string, { stars: 0 | 1 | 2 | 3 }> = {}) {

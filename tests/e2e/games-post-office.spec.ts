@@ -93,7 +93,8 @@ async function signIn(page: Page) {
 
 interface MockApi {
   calls: string[];
-  score: { bestScore: number; bestStreak: number; accuracy: number; totalParcelsRouted: number } | null;
+  // Saved records by game id, shaped like the Lambda's (TYP-16) responses.
+  scores: Record<string, { bestScore: number; bestStreak: number; accuracy: number; totalScore: number }>;
 }
 
 const CORS = {
@@ -103,7 +104,7 @@ const CORS = {
 };
 
 async function mockApi(page: Page): Promise<MockApi> {
-  const api: MockApi = { calls: [], score: null };
+  const api: MockApi = { calls: [], scores: {} };
   const badges = new Set<string>();
   const json = (route: Route, status: number, body: unknown) =>
     route.fulfill({ status, headers: CORS, contentType: 'application/json', body: JSON.stringify(body) });
@@ -121,17 +122,19 @@ async function mockApi(page: Page): Promise<MockApi> {
     const badge = path.match(/^\/me\/badges\/(.+)$/);
     if (badge && method === 'POST') { badges.add(badge[1]); return json(route, 200, { unlocked: true }); }
 
-    if (path === '/me/games/post-office/score') {
-      if (method === 'GET') return api.score ? json(route, 200, api.score) : json(route, 404, { error: 'Not found' });
-      if (method === 'PUT') {
-        const { score, streak, accuracy } = req.postDataJSON();
-        const total = (api.score?.totalParcelsRouted ?? 0) + score;
-        const better = !api.score || score > api.score.bestScore;
-        api.score = better
-          ? { bestScore: score, bestStreak: streak, accuracy, totalParcelsRouted: total }
-          : { ...api.score!, totalParcelsRouted: total };
-        return json(route, 200, { updated: better, ...api.score });
-      }
+    if (path === '/me/games' && method === 'GET') {
+      return json(route, 200, Object.entries(api.scores).map(([gameId, s]) => ({ gameId, ...s })));
+    }
+    const game = path.match(/^\/me\/games\/([\w-]+)\/score$/);
+    if (game && method === 'PUT') {
+      const { score, streak, accuracy } = req.postDataJSON();
+      const prev = api.scores[game[1]];
+      const totalScore = (prev?.totalScore ?? 0) + score;
+      const better = !prev || score > prev.bestScore;
+      api.scores[game[1]] = better
+        ? { bestScore: score, bestStreak: streak, accuracy, totalScore }
+        : { ...prev, totalScore };
+      return json(route, 200, { updated: better, gameId: game[1], ...api.scores[game[1]] });
     }
     return json(route, 404, { error: 'Not found' });
   });
@@ -158,7 +161,7 @@ test.describe('Post Office game: saving scores', () => {
 
     await expect(page.getByTestId('personal-best')).toContainText('First score saved: 1!');
     await expect.poll(() => api.calls).toContain('PUT /me/games/post-office/score');
-    expect(api.score).toMatchObject({ bestScore: 1, totalParcelsRouted: 1 });
+    expect(api.scores['post-office']).toMatchObject({ bestScore: 1, totalScore: 1 });
 
     await page.reload();
     await expect(page.getByTestId('saved-best')).toContainText('Your best: 1 parcels');

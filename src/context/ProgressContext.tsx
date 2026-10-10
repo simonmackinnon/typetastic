@@ -6,32 +6,29 @@ import React, {
   useReducer,
 } from 'react';
 import {
-  fetchProgress, saveProgress, fetchBadges, unlockBadge, fetchGameScore, saveGameScore,
+  fetchProgress, saveProgress, fetchBadges, unlockBadge, fetchAllGameScores, saveGameScore,
 } from '../services/api';
 import { checkNewBadges } from '../data/badges';
-import type { LevelProgress, PlayerStats, TypingResult, Badge, GameScore } from '../types';
-import type { PostOfficeRoundResult } from '../hooks/usePostOfficeGame';
+import { isGameId, zeroGameStats, type GameId } from '../data/games';
+import type { LevelProgress, PlayerStats, TypingResult, Badge, GameScore, GameRoundResult } from '../types';
 import { useAuth } from './AuthContext';
 
 interface ProgressState {
   progress: Record<string, LevelProgress>;
   earnedBadges: string[];
   newBadges: Badge[];               // badges unlocked in latest session, shown as toast
-  gameScores: Record<string, GameScore>;
+  gameScores: Partial<Record<GameId, GameScore>>;
   loaded: boolean;
 }
-
-// Games whose score is fetched on load. Mirrors the Lambda's GAME_IDS allowlist.
-const GAME_IDS = ['post-office'] as const;
 
 interface ProgressContextValue {
   progress: Record<string, LevelProgress>;
   earnedBadges: string[];
   newBadges: Badge[];
   stats: PlayerStats;
-  gameScores: Record<string, GameScore>;
+  gameScores: Partial<Record<GameId, GameScore>>;
   submitResult: (levelId: string, result: TypingResult) => Promise<void>;
-  submitGameScore: (gameId: string, result: PostOfficeRoundResult) => Promise<void>;
+  submitGameScore: (gameId: GameId, result: GameRoundResult) => Promise<void>;
   dismissNewBadges: () => void;
   reload: () => void;
 }
@@ -39,10 +36,10 @@ interface ProgressContextValue {
 export const ProgressContext = createContext<ProgressContextValue | null>(null);
 
 type Action =
-  | { type: 'LOAD'; progress: LevelProgress[]; badges: string[]; gameScores: Record<string, GameScore> }
+  | { type: 'LOAD'; progress: LevelProgress[]; badges: string[]; gameScores: Partial<Record<GameId, GameScore>> }
   | { type: 'SAVE_PROGRESS'; entry: LevelProgress }
-  | { type: 'SAVE_GAME_ROUND'; gameId: string; result: PostOfficeRoundResult }
-  | { type: 'SYNC_GAME_SCORE'; gameId: string; score: GameScore }
+  | { type: 'SAVE_GAME_ROUND'; gameId: GameId; result: GameRoundResult }
+  | { type: 'SYNC_GAME_SCORE'; gameId: GameId; score: GameScore }
   | { type: 'UNLOCK_BADGES'; badges: Badge[] }
   | { type: 'DISMISS_BADGES' };
 
@@ -108,22 +105,30 @@ export function levelStats(progress: Record<string, LevelProgress>) {
 
 // Optimistic local version of the server's rule: every round adds to the
 // running total; the best-round fields only change when the score beats them.
-export function applyGameRound(existing: GameScore | undefined, result: PostOfficeRoundResult): GameScore {
-  const totalParcelsRouted = (existing?.totalParcelsRouted ?? 0) + result.score;
-  if (existing && result.score <= existing.bestScore) return { ...existing, totalParcelsRouted };
+export function applyGameRound(existing: GameScore | undefined, result: GameRoundResult): GameScore {
+  const totalScore = (existing?.totalScore ?? 0) + result.score;
+  if (existing && result.score <= existing.bestScore) return { ...existing, totalScore };
   return {
     bestScore: result.score,
     bestStreak: result.bestStreak,
     accuracy: result.accuracy,
-    totalParcelsRouted,
+    totalScore,
   };
 }
 
-function gameStats(gameScores: Record<string, GameScore>) {
-  return {
-    bestPostOfficeScore: gameScores['post-office']?.bestScore ?? 0,
-    totalParcelsRouted: gameScores['post-office']?.totalParcelsRouted ?? 0,
-  };
+// Only the fields the client relies on, whatever extras the API returns
+// (gameId, updatedAt, legacy Post Office fields, …).
+function toGameScore(s: GameScore): GameScore {
+  return { bestScore: s.bestScore, bestStreak: s.bestStreak, accuracy: s.accuracy, totalScore: s.totalScore ?? 0 };
+}
+
+/** The per-game part of PlayerStats: a zero entry for every registered game. */
+export function gameStats(gameScores: Partial<Record<GameId, GameScore>>) {
+  const games = zeroGameStats();
+  for (const [id, score] of Object.entries(gameScores) as [GameId, GameScore][]) {
+    games[id] = { best: score.bestScore, total: score.totalScore };
+  }
+  return { games };
 }
 
 const INITIAL: ProgressState = { progress: {}, earnedBadges: [], newBadges: [], gameScores: {}, loaded: false };
@@ -134,15 +139,16 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
 
   const load = useCallback(async () => {
     if (!user) return;
-    const [progress, badges, ...scores] = await Promise.all([
+    const [progress, badges, savedScores] = await Promise.all([
       fetchProgress(),
       fetchBadges(),
-      // A failed game-score fetch shouldn't block level progress from loading.
-      ...GAME_IDS.map((id) => fetchGameScore(id).catch(() => null)),
+      // One request for every game. A failure shouldn't block level progress.
+      fetchAllGameScores().catch(() => []),
     ]);
-    const gameScores = Object.fromEntries(
-      GAME_IDS.flatMap((id, i) => (scores[i] ? [[id, scores[i]]] : [])),
-    ) as Record<string, GameScore>;
+    const gameScores: Partial<Record<GameId, GameScore>> = {};
+    for (const saved of savedScores) {
+      if (isGameId(saved.gameId)) gameScores[saved.gameId] = toGameScore(saved);
+    }
     dispatch({ type: 'LOAD', progress, badges, gameScores });
   }, [user]);
 
@@ -192,7 +198,7 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  async function submitGameScore(gameId: string, result: PostOfficeRoundResult) {
+  async function submitGameScore(gameId: GameId, result: GameRoundResult) {
     // Optimistic local update first, so stats and badges respond immediately.
     dispatch({ type: 'SAVE_GAME_ROUND', gameId, result });
 
@@ -209,10 +215,11 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
     // matching level progress.
     if (!user) return;
     try {
-      const [saved] = await Promise.all([
+      const [savedRecord] = await Promise.all([
         saveGameScore(gameId, { score: result.score, streak: result.bestStreak, accuracy: result.accuracy }),
         ...newlyUnlocked.map((b) => unlockBadge(b.id)),
       ]);
+      const saved = toGameScore(savedRecord);
       dispatch({ type: 'SYNC_GAME_SCORE', gameId, score: saved });
 
       // The server's running total is authoritative (e.g. if this round was

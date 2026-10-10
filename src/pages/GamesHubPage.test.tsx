@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect } from 'vitest';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import GamesHubPage from './GamesHubPage';
+import { GAMES } from '../data/games';
 
 const COMING_SOON = ['rockets', 'cars', 'trains', 'factories'];
 
@@ -18,6 +19,13 @@ function renderHub() {
 }
 
 describe('GamesHubPage', () => {
+  it('renders one card per registry entry, in registry order, with its name', () => {
+    renderHub();
+    const cards = screen.getAllByTestId(/^game-/);
+    expect(cards.map((c) => c.dataset.testid)).toEqual(GAMES.map((g) => `game-${g.id}`));
+    GAMES.forEach((g, i) => expect(cards[i]).toHaveTextContent(g.name));
+  });
+
   it('renders the heading and all 5 game cards', () => {
     renderHub();
     expect(screen.getByRole('heading', { name: 'Games' })).toBeInTheDocument();

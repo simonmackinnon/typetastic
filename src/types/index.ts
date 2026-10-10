@@ -1,3 +1,5 @@
+import type { GameId, GameStats } from '../data/games';
+
 export type LevelType = 'keys' | 'words' | 'sentences' | 'speed';
 
 export type Zone = 1 | 2 | 3 | 4 | 5 | 6;
@@ -50,15 +52,21 @@ export interface PlayerStats {
   bestWpm: number;
   totalTimeMinutes: number;
   badgesEarned: string[];
-  bestPostOfficeScore: number;   // best single Post Office round
-  totalParcelsRouted: number;    // cumulative across all Post Office rounds
+  games: Record<GameId, GameStats>; // zero-filled for every registered game
 }
 
 export interface GameScore {
   bestScore: number;
   bestStreak: number;
   accuracy: number;
-  totalParcelsRouted: number;
+  totalScore: number;       // running total across all rounds
+}
+
+/** The part of a finished round every game reports; games add their own extras. */
+export interface GameRoundResult {
+  score: number;
+  accuracy: number;         // 0-100
+  bestStreak: number;
 }
 
 export type GameStatus = 'idle' | 'countdown' | 'playing' | 'complete' | 'failed';
