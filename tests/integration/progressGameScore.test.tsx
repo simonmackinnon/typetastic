@@ -99,7 +99,9 @@ describe('Post Office score persistence round trip', () => {
     await act(() => first.result.current.submitGameScore('post-office', round(12, 7, 91)));
     expect(requests).toContain('PUT /me/games/post-office/score');
     expect(table.get(keyOf('kid-1', 'game#post-office#best'))).toMatchObject({
-      bestScore: 12, bestStreak: 7, accuracy: 91, totalParcelsRouted: 12,
+      // Stored as the generic totalScore since TYP-16; the API still returns
+      // totalParcelsRouted for Post Office, which is what the frontend reads.
+      bestScore: 12, bestStreak: 7, accuracy: 91, totalScore: 12,
     });
     first.unmount();
 

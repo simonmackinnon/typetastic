@@ -8,6 +8,7 @@
  *   POST /me/badges/:badgeId       → mark badge earned
  *   GET  /me/profile               → get profile
  *   PUT  /me/profile               → update profile
+ *   GET  /me/games                 → list the player's saved records for every game
  *   GET  /me/games/:gameId/score   → get best score + running total for a game (404 if never played)
  *   PUT  /me/games/:gameId/score   → add score to the running total; replace the best only if beaten
  *
@@ -18,7 +19,8 @@
  *   SK dataKey = "profile"
  *               | "level#01" … "level#20"
  *               | "badge#first-keystroke" … etc.
- *               | "game#post-office#best" (one per allowlisted gameId)
+ *               | "game#post-office#best" … (one per allowlisted gameId:
+ *                 bestScore, bestStreak, accuracy, totalScore, updatedAt)
  */
 
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
@@ -166,21 +168,63 @@ async function updateProfile(userId, body) {
 // ── Game score helpers ────────────────────────────────────────────────────────
 
 // gameId comes from the client-supplied path, so it is checked against this
-// allowlist before it is ever used to build a dataKey.
-const GAME_IDS = new Set(['post-office']);
+// allowlist before it is ever used to build a dataKey. Each value is that
+// game's maximum plausible single-round score, a sanity cap on client input.
+const GAME_IDS = new Map([
+  ['post-office', 100],
+  ['rockets',     1000],
+  ['factories',   100],
+]);
+
+// Games whose records may still hold the running total under its old name.
+// Post Office stored it as totalParcelsRouted before the generic totalScore.
+const LEGACY_TOTAL_GAMES = new Set(['post-office']);
 
 const gameKey = (gameId) => `game#${gameId}#best`;
 
 const isCount = (n) => Number.isInteger(n) && n >= 0;
 
-const toGameRecord = (gameId, item) => ({
-  gameId,
-  bestScore:          item.bestScore,
-  bestStreak:         item.bestStreak,
-  accuracy:           item.accuracy,
-  totalParcelsRouted: item.totalParcelsRouted ?? 0,
-  updatedAt:          item.updatedAt,
-});
+const toGameRecord = (gameId, item) => {
+  const totalScore = item.totalScore ?? item.totalParcelsRouted ?? 0;
+  return {
+    gameId,
+    bestScore:  item.bestScore,
+    bestStreak: item.bestStreak,
+    accuracy:   item.accuracy,
+    totalScore,
+    // Kept for one release so browser tabs still running the old app work.
+    ...(LEGACY_TOTAL_GAMES.has(gameId) ? { totalParcelsRouted: totalScore } : {}),
+    updatedAt:  item.updatedAt,
+  };
+};
+
+async function listGameScores(userId) {
+  const { Items = [] } = await dynamo.send(new QueryCommand({
+    TableName: TABLE,
+    KeyConditionExpression: 'userId = :u AND begins_with(dataKey, :prefix)',
+    ExpressionAttributeValues: { ':u': userId, ':prefix': 'game#' },
+  }));
+  return ok(
+    Items
+      .filter((item) => item.bestScore !== undefined)
+      .map((item) => toGameRecord(item.dataKey.split('#')[1], item)),
+  );
+}
+
+// One-time rename of a legacy running total. Conditional, so it's a no-op once
+// migrated (or for records that never had the old attribute).
+async function migrateLegacyTotal(Key) {
+  try {
+    await dynamo.send(new UpdateCommand({
+      TableName: TABLE,
+      Key,
+      UpdateExpression: 'SET totalScore = totalParcelsRouted REMOVE totalParcelsRouted',
+      ConditionExpression: 'attribute_exists(totalParcelsRouted) AND attribute_not_exists(totalScore)',
+    }));
+  } catch (e) {
+    if (e.name !== 'ConditionalCheckFailedException') throw e;
+  }
+}
 
 async function getGameScore(userId, gameId) {
   const { Item } = await dynamo.send(new GetCommand({
@@ -196,14 +240,17 @@ async function saveGameScore(userId, gameId, body) {
   if (!isCount(score) || !isCount(streak) || typeof accuracy !== 'number' || accuracy < 0 || accuracy > 100) {
     return err(400, 'score and streak must be non-negative integers, accuracy 0-100');
   }
+  if (score > GAME_IDS.get(gameId)) return err(400, 'score exceeds the maximum for this game');
   const Key = { userId, dataKey: gameKey(gameId) };
 
+  if (LEGACY_TOTAL_GAMES.has(gameId)) await migrateLegacyTotal(Key);
+
   // Every round counts toward the running total, whether or not it's a new best.
-  // ADD is atomic, so concurrent rounds can't lose each other's parcels.
+  // ADD is atomic, so concurrent rounds can't lose each other's points.
   const { Attributes: afterTotal } = await dynamo.send(new UpdateCommand({
     TableName: TABLE,
     Key,
-    UpdateExpression: 'ADD totalParcelsRouted :score',
+    UpdateExpression: 'ADD totalScore :score',
     ExpressionAttributeValues: { ':score': score },
     ReturnValues: 'ALL_NEW',
   }));
@@ -273,6 +320,11 @@ exports.handler = async (event) => {
   // PUT /me/profile
   if (method === 'PUT' && rawPath === '/me/profile') {
     return updateProfile(userId, body);
+  }
+
+  // GET /me/games
+  if (method === 'GET' && rawPath === '/me/games') {
+    return listGameScores(userId);
   }
 
   // GET|PUT /me/games/{gameId}/score
