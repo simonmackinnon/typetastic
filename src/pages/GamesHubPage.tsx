@@ -1,22 +1,6 @@
 import { Link } from 'react-router-dom';
-import { Package, Rocket, Car, TrainFront, Factory, Clock, type LucideIcon } from 'lucide-react';
-
-interface GameCard {
-  id: string;
-  name: string;
-  description: string;
-  Icon: LucideIcon;
-  color: string;
-  playable: boolean;
-}
-
-const GAMES: GameCard[] = [
-  { id: 'post-office', name: 'Post Office', description: 'Type the city code to sort each parcel before it falls off the belt!', Icon: Package, color: 'bg-gradient-to-br from-orange-400 to-pink-500', playable: true },
-  { id: 'rockets', name: 'Rockets', description: 'Launch rockets with lightning-fast typing.', Icon: Rocket, color: '', playable: false },
-  { id: 'cars', name: 'Cars', description: 'Race to the finish line, one word at a time.', Icon: Car, color: '', playable: false },
-  { id: 'trains', name: 'Trains', description: 'Keep the trains running on time.', Icon: TrainFront, color: '', playable: false },
-  { id: 'factories', name: 'Factories', description: 'Build gadgets on the assembly line.', Icon: Factory, color: '', playable: false },
-];
+import { Clock } from 'lucide-react';
+import { GAMES } from '../data/games';
 
 export default function GamesHubPage() {
   return (
@@ -29,7 +13,7 @@ export default function GamesHubPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {GAMES.map(({ id, name, description, Icon, color, playable }) => {
+        {GAMES.map(({ id, name, description, Icon, color, playable, route }) => {
           const content = (
             <>
               {!playable && (
@@ -51,7 +35,7 @@ export default function GamesHubPage() {
           return playable ? (
             <Link
               key={id}
-              to={`/games/${id}`}
+              to={route}
               data-testid={`game-${id}`}
               className={`${base} ${color} border-white/40 shadow-md hover:scale-105 hover:shadow-xl`}
             >

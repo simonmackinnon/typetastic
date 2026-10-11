@@ -45,7 +45,7 @@ function renderPage({ user = null, saved }: { user?: typeof mockUser; saved?: Ga
 }
 
 const SIGNED_IN = { sub: 'user-1', email: 'kid@example.com' };
-const saved = (bestScore: number): GameScore => ({ bestScore, bestStreak: 4, accuracy: 90, totalParcelsRouted: 30 });
+const saved = (bestScore: number): GameScore => ({ bestScore, bestStreak: 4, accuracy: 90, totalScore: 30 });
 
 function playRound() {
   fireEvent.click(screen.getByRole('button', { name: /start/i }));

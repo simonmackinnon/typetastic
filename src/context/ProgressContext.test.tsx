@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { ReactNode } from 'react';
 import { ProgressProvider, useProgress, applyGameRound, applyLevelResult, levelStats } from './ProgressContext';
 import * as api from '../services/api';
+import { zeroGameStats } from '../data/games';
 import type { PostOfficeRoundResult } from '../hooks/usePostOfficeGame';
 
 vi.mock('../services/api', () => ({
@@ -10,7 +11,7 @@ vi.mock('../services/api', () => ({
   saveProgress: vi.fn(),
   fetchBadges: vi.fn(),
   unlockBadge: vi.fn(),
-  fetchGameScore: vi.fn(),
+  fetchAllGameScores: vi.fn(),
   saveGameScore: vi.fn(),
 }));
 
@@ -34,31 +35,31 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocked.fetchProgress.mockResolvedValue([]);
   mocked.fetchBadges.mockResolvedValue([]);
-  mocked.fetchGameScore.mockResolvedValue(null);
+  mocked.fetchAllGameScores.mockResolvedValue([]);
   mocked.saveProgress.mockResolvedValue(undefined);
   mocked.unlockBadge.mockResolvedValue(undefined);
   mocked.saveGameScore.mockImplementation(async (_id, r) => ({
-    bestScore: r.score, bestStreak: r.streak, accuracy: r.accuracy, totalParcelsRouted: r.score,
+    bestScore: r.score, bestStreak: r.streak, accuracy: r.accuracy, totalScore: r.score,
   }));
 });
 
 describe('applyGameRound', () => {
   it('first round sets the best and starts the total', () => {
     expect(applyGameRound(undefined, round(12, 7, 91))).toEqual({
-      bestScore: 12, bestStreak: 7, accuracy: 91, totalParcelsRouted: 12,
+      bestScore: 12, bestStreak: 7, accuracy: 91, totalScore: 12,
     });
   });
 
   it('a lower or equal round only adds to the total', () => {
-    const best = { bestScore: 12, bestStreak: 7, accuracy: 91, totalParcelsRouted: 12 };
-    expect(applyGameRound(best, round(5, 9, 100))).toEqual({ ...best, totalParcelsRouted: 17 });
-    expect(applyGameRound(best, round(12, 9, 100))).toEqual({ ...best, totalParcelsRouted: 24 });
+    const best = { bestScore: 12, bestStreak: 7, accuracy: 91, totalScore: 12 };
+    expect(applyGameRound(best, round(5, 9, 100))).toEqual({ ...best, totalScore: 17 });
+    expect(applyGameRound(best, round(12, 9, 100))).toEqual({ ...best, totalScore: 24 });
   });
 
   it('a higher round replaces the best', () => {
-    const best = { bestScore: 12, bestStreak: 7, accuracy: 91, totalParcelsRouted: 12 };
+    const best = { bestScore: 12, bestStreak: 7, accuracy: 91, totalScore: 12 };
     expect(applyGameRound(best, round(20, 4, 88))).toEqual({
-      bestScore: 20, bestStreak: 4, accuracy: 88, totalParcelsRouted: 32,
+      bestScore: 20, bestStreak: 4, accuracy: 88, totalScore: 32,
     });
   });
 });
@@ -87,22 +88,33 @@ describe('applyLevelResult / levelStats', () => {
 });
 
 describe('submitGameScore (guest)', () => {
+  it('a round only changes that game\'s stats', async () => {
+    const { result } = renderProgress();
+    await act(() => result.current.submitGameScore('post-office', round(12)));
+    expect(result.current.stats.games.rockets).toEqual({ best: 0, total: 0 });
+    expect(result.current.stats.games.factories).toEqual({ best: 0, total: 0 });
+
+    await act(() => result.current.submitGameScore('rockets', round(400)));
+    expect(result.current.stats.games['post-office']).toEqual({ best: 12, total: 12 });
+    expect(result.current.stats.games.rockets).toEqual({ best: 400, total: 400 });
+  });
+
   it('updates in-session stats only if the score beats the cached best', async () => {
     const { result } = renderProgress();
     await act(() => result.current.submitGameScore('post-office', round(12)));
-    expect(result.current.stats).toMatchObject({ bestPostOfficeScore: 12, totalParcelsRouted: 12 });
+    expect(result.current.stats.games['post-office']).toEqual({ best: 12, total: 12 });
 
     await act(() => result.current.submitGameScore('post-office', round(5)));
-    expect(result.current.stats).toMatchObject({ bestPostOfficeScore: 12, totalParcelsRouted: 17 });
+    expect(result.current.stats.games['post-office']).toEqual({ best: 12, total: 17 });
 
     await act(() => result.current.submitGameScore('post-office', round(15)));
-    expect(result.current.stats).toMatchObject({ bestPostOfficeScore: 15, totalParcelsRouted: 32 });
+    expect(result.current.stats.games['post-office']).toEqual({ best: 15, total: 32 });
   });
 
   it('never calls the API', async () => {
     const { result } = renderProgress();
     await act(() => result.current.submitGameScore('post-office', round(25)));
-    expect(mocked.fetchGameScore).not.toHaveBeenCalled();
+    expect(mocked.fetchAllGameScores).not.toHaveBeenCalled();
     expect(mocked.saveGameScore).not.toHaveBeenCalled();
     expect(mocked.unlockBadge).not.toHaveBeenCalled();
   });
@@ -123,7 +135,7 @@ describe('submitGameScore (guest)', () => {
     await act(() => result.current.submitGameScore('post-office', round(15)));
     expect(result.current.earnedBadges).not.toContain('mail-sorter');
     await act(() => result.current.submitGameScore('post-office', round(5)));
-    expect(result.current.stats.totalParcelsRouted).toBe(50);
+    expect(result.current.stats.games['post-office'].total).toBe(50);
     expect(result.current.newBadges.map((b) => b.id)).toEqual(['mail-sorter']);
   });
 
@@ -139,46 +151,46 @@ describe('submitGameScore (guest)', () => {
 
 describe('submitGameScore (signed in)', () => {
   it('loads the saved score into stats on sign-in', async () => {
-    mocked.fetchGameScore.mockResolvedValue({ bestScore: 14, bestStreak: 6, accuracy: 93, totalParcelsRouted: 40 });
+    mocked.fetchAllGameScores.mockResolvedValue([{ gameId: 'post-office', bestScore: 14, bestStreak: 6, accuracy: 93, totalScore: 40 }]);
     const { result } = renderProgress(SIGNED_IN);
-    await waitFor(() => expect(result.current.stats.bestPostOfficeScore).toBe(14));
-    expect(result.current.stats.totalParcelsRouted).toBe(40);
+    await waitFor(() => expect(result.current.stats.games['post-office'].best).toBe(14));
+    expect(result.current.stats.games['post-office'].total).toBe(40);
     expect(result.current.gameScores['post-office']).toMatchObject({ bestScore: 14 });
-    expect(mocked.fetchGameScore).toHaveBeenCalledWith('post-office');
+    expect(mocked.fetchAllGameScores).toHaveBeenCalledTimes(1);
   });
 
   it('a failed score fetch does not block level progress from loading', async () => {
-    mocked.fetchGameScore.mockRejectedValue(new Error('network'));
+    mocked.fetchAllGameScores.mockRejectedValue(new Error('network'));
     mocked.fetchProgress.mockResolvedValue([
       { levelId: '01', stars: 2, bestAccuracy: 95, bestWpm: 20, completedAt: '2026-01-01' },
     ]);
     const { result } = renderProgress(SIGNED_IN);
     await waitFor(() => expect(result.current.stats.levelsCompleted).toBe(1));
-    expect(result.current.stats.bestPostOfficeScore).toBe(0);
+    expect(result.current.stats.games['post-office'].best).toBe(0);
   });
 
   it('persists the round and syncs to the server record', async () => {
-    mocked.saveGameScore.mockResolvedValue({ bestScore: 12, bestStreak: 7, accuracy: 91, totalParcelsRouted: 33 });
+    mocked.saveGameScore.mockResolvedValue({ bestScore: 12, bestStreak: 7, accuracy: 91, totalScore: 33 });
     const { result } = renderProgress(SIGNED_IN);
-    await waitFor(() => expect(mocked.fetchGameScore).toHaveBeenCalled());
+    await waitFor(() => expect(mocked.fetchAllGameScores).toHaveBeenCalled());
 
     await act(() => result.current.submitGameScore('post-office', round(12, 7, 91)));
     expect(mocked.saveGameScore).toHaveBeenCalledWith('post-office', { score: 12, streak: 7, accuracy: 91 });
     // Server total (33) wins over the optimistic local total (12)
-    expect(result.current.stats.totalParcelsRouted).toBe(33);
+    expect(result.current.stats.games['post-office'].total).toBe(33);
   });
 
   it('persists newly unlocked badges', async () => {
     const { result } = renderProgress(SIGNED_IN);
-    await waitFor(() => expect(mocked.fetchGameScore).toHaveBeenCalled());
+    await waitFor(() => expect(mocked.fetchAllGameScores).toHaveBeenCalled());
     await act(() => result.current.submitGameScore('post-office', round(20)));
     expect(mocked.unlockBadge).toHaveBeenCalledWith('speed-sorter');
   });
 
   it('unlocks Mail Sorter when the server total crosses 50 even if the local total did not', async () => {
-    mocked.saveGameScore.mockResolvedValue({ bestScore: 12, bestStreak: 3, accuracy: 90, totalParcelsRouted: 52 });
+    mocked.saveGameScore.mockResolvedValue({ bestScore: 12, bestStreak: 3, accuracy: 90, totalScore: 52 });
     const { result } = renderProgress(SIGNED_IN);
-    await waitFor(() => expect(mocked.fetchGameScore).toHaveBeenCalled());
+    await waitFor(() => expect(mocked.fetchAllGameScores).toHaveBeenCalled());
     await act(() => result.current.submitGameScore('post-office', round(12)));
     expect(result.current.earnedBadges).toContain('mail-sorter');
     expect(mocked.unlockBadge).toHaveBeenCalledWith('mail-sorter');
@@ -188,9 +200,9 @@ describe('submitGameScore (signed in)', () => {
     mocked.saveGameScore.mockRejectedValue(new Error('network'));
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const { result } = renderProgress(SIGNED_IN);
-    await waitFor(() => expect(mocked.fetchGameScore).toHaveBeenCalled());
+    await waitFor(() => expect(mocked.fetchAllGameScores).toHaveBeenCalled());
     await act(() => result.current.submitGameScore('post-office', round(12)));
-    expect(result.current.stats.bestPostOfficeScore).toBe(12);
+    expect(result.current.stats.games['post-office'].best).toBe(12);
     expect(warn).toHaveBeenCalled();
     warn.mockRestore();
   });
@@ -206,8 +218,7 @@ describe('regression: level progress', () => {
       bestWpm: 0,
       totalTimeMinutes: 0,
       badgesEarned: [],
-      bestPostOfficeScore: 0,
-      totalParcelsRouted: 0,
+      games: zeroGameStats(),
     });
   });
 

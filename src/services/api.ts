@@ -40,6 +40,15 @@ export interface GameRoundSubmission {
   accuracy: number;
 }
 
+export type SavedGameScore = GameScore & { gameId: string };
+
+/** Every saved game record for the player, in one request. */
+export async function fetchAllGameScores(): Promise<SavedGameScore[]> {
+  const headers = await authHeaders();
+  const { data } = await axios.get<SavedGameScore[]>(`${BASE_URL}/me/games`, { headers });
+  return data;
+}
+
 /** The player's stored best + running total for a game, or null if never played. */
 export async function fetchGameScore(gameId: string): Promise<GameScore | null> {
   const headers = await authHeaders();
