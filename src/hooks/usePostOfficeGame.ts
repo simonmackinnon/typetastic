@@ -1,9 +1,12 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
+import { useCallback, useMemo, useReducer, useRef } from 'react';
 import type { GameRoundResult, GameStatus } from '../types';
 import { parcelsForTier, type CityCodeEntry, type ParcelRegion, type ParcelTier } from '../data/postOfficeParcels';
+import {
+  ROUND_MS, TICK_MS, COUNTDOWN_FROM, COUNTDOWN_STEP_MS,
+  matchesKey, accuracyPercent, countdownStep, useGameInterval, useGameKeyboard,
+} from './gameShared';
 
-export const ROUND_MS = 60_000;
-export const TICK_MS = 100;
+export { ROUND_MS, TICK_MS };
 export const BELT_MS = 10_000;          // time for a parcel to travel the full belt
 export const SPAWN_START_MS = 3_000;    // spawn interval at the start of the round...
 export const SPAWN_END_MS = 1_200;      // ...ramping linearly down to this by the end
@@ -54,7 +57,7 @@ type PostOfficeAction =
 function init(): PostOfficeState {
   return {
     status: 'idle',
-    countdown: 3,
+    countdown: COUNTDOWN_FROM,
     elapsed: 0,
     nextSpawnAt: 0,
     nextUid: 1,
@@ -124,7 +127,7 @@ function keystroke(state: PostOfficeState, char: string): PostOfficeState {
   if (!active) return state; // nothing on the belt to type at
 
   const expected = active.entry.code[state.typedIndex];
-  if (char.toUpperCase() !== expected) {
+  if (!matchesKey(expected, char)) {
     return {
       ...state,
       totalKeystrokes: state.totalKeystrokes + 1,
@@ -158,10 +161,11 @@ function reducer(state: PostOfficeState, action: PostOfficeAction): PostOfficeSt
     case 'START_COUNTDOWN':
       return { ...init(), status: 'countdown' };
 
-    case 'COUNTDOWN_TICK':
+    case 'COUNTDOWN_TICK': {
       if (state.status !== 'countdown') return state;
-      if (state.countdown > 1) return { ...state, countdown: state.countdown - 1 };
-      return { ...state, status: 'playing' };
+      const countdown = countdownStep(state.countdown);
+      return countdown === null ? { ...state, status: 'playing' } : { ...state, countdown };
+    }
 
     case 'BELT_TICK':
       return state.status === 'playing' ? beltTick(state, action.rand) : state;
@@ -206,39 +210,18 @@ export function usePostOfficeGame({ random = Math.random }: UsePostOfficeGameOpt
   const randomRef = useRef(random);
   randomRef.current = random;
 
-  useEffect(() => {
-    if (state.status !== 'countdown') return;
-    const id = setInterval(() => dispatch({ type: 'COUNTDOWN_TICK' }), 1000);
-    return () => clearInterval(id);
-  }, [state.status]);
-
-  useEffect(() => {
-    if (state.status !== 'playing') return;
-    const id = setInterval(
-      () => dispatch({ type: 'BELT_TICK', rand: [randomRef.current(), randomRef.current()] }),
-      TICK_MS,
-    );
-    return () => clearInterval(id);
-  }, [state.status]);
+  useGameInterval(state.status === 'countdown', () => dispatch({ type: 'COUNTDOWN_TICK' }), COUNTDOWN_STEP_MS);
+  useGameInterval(
+    state.status === 'playing',
+    () => dispatch({ type: 'BELT_TICK', rand: [randomRef.current(), randomRef.current()] }),
+    TICK_MS,
+  );
 
   const recordKeystroke = useCallback((char: string) => {
     dispatch({ type: 'KEY', char });
   }, []);
 
-  useEffect(() => {
-    if (state.status !== 'playing') return;
-
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
-      if (e.key === 'Tab') { e.preventDefault(); return; }
-      if (e.key.length !== 1) return;
-      e.preventDefault(); // stop space/other keys scrolling the page
-      recordKeystroke(e.key);
-    }
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [state.status, recordKeystroke]);
+  useGameKeyboard(state.status === 'playing', recordKeystroke);
 
   const start = useCallback(() => dispatch({ type: 'START_COUNTDOWN' }), []);
   const reset = useCallback(() => dispatch({ type: 'RESET' }), []);
@@ -252,10 +235,7 @@ export function usePostOfficeGame({ random = Math.random }: UsePostOfficeGameOpt
     [state.parcels, state.elapsed],
   );
 
-  const accuracy =
-    state.totalKeystrokes > 0
-      ? Math.round((state.correctKeystrokes / state.totalKeystrokes) * 100)
-      : 0;
+  const accuracy = accuracyPercent(state.correctKeystrokes, state.totalKeystrokes);
 
   const result: PostOfficeRoundResult | null =
     state.status === 'complete'

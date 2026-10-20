@@ -1,13 +1,11 @@
-import { test, expect, type Page, type Route } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+import { gotoGame, mockApi, signIn, startRound as startGameRound } from './helpers/games';
 
 // The round is 60s long; Playwright's fake clock lets us fast-forward through
 // the countdown and the round instead of waiting in real time.
 
-async function startRound(page: Page) {
-  await page.getByRole('button', { name: /start/i }).click();
-  await page.clock.runFor(3_200); // 3-2-1 countdown + first belt tick
-  await expect(page.getByTestId('active-parcel')).toBeVisible();
-}
+const GAME_ID = 'post-office';
+const startRound = (page: Page) => startGameRound(page, 'active-parcel');
 
 async function typeActiveParcel(page: Page) {
   const code = await page.getByTestId('active-parcel').getAttribute('data-code');
@@ -29,7 +27,7 @@ test.describe('Post Office game', () => {
 
   test('instructions -> countdown -> live game', async ({ page }) => {
     await page.clock.install();
-    await page.goto('/games/post-office');
+    await gotoGame(page, GAME_ID);
     await expect(page.getByRole('heading', { name: /how to play/i })).toBeVisible();
 
     await page.getByRole('button', { name: /start/i }).click();
@@ -43,7 +41,7 @@ test.describe('Post Office game', () => {
 
   test('typing a parcel code increments the score', async ({ page }) => {
     await page.clock.install();
-    await page.goto('/games/post-office');
+    await gotoGame(page, GAME_ID);
     await startRound(page);
 
     await typeActiveParcel(page);
@@ -53,7 +51,7 @@ test.describe('Post Office game', () => {
 
   test('results screen appears with the session stats when time runs out', async ({ page }) => {
     await page.clock.install();
-    await page.goto('/games/post-office');
+    await gotoGame(page, GAME_ID);
     await startRound(page);
     await typeActiveParcel(page);
     await expect(page.getByTestId('hud-score')).toContainText('1');
@@ -69,78 +67,6 @@ test.describe('Post Office game', () => {
   });
 });
 
-// ── Signed-in persistence ────────────────────────────────────────────────────
-// CI builds against stub Cognito/API values, so there's no real login or
-// backend here. We seed a fake signed-in Google session (the app reads
-// ts_oauth_tokens before touching Cognito) and answer /me/* with a stateful
-// mock that applies the Lambda's rules and survives page reloads. The real
-// handler round trip is covered by tests/integration/progressGameScore.test.tsx.
-
-function fakeIdToken(claims: Record<string, unknown>): string {
-  const b64 = (o: unknown) => Buffer.from(JSON.stringify(o)).toString('base64url');
-  return `${b64({ alg: 'none', typ: 'JWT' })}.${b64(claims)}.sig`;
-}
-
-async function signIn(page: Page) {
-  const tokens = {
-    id_token: fakeIdToken({ sub: 'e2e-kid', email: 'e2e-kid@example.com' }),
-    access_token: 'fake-access',
-    refresh_token: 'fake-refresh',
-    expires_at: Date.UTC(2100, 0, 1),
-  };
-  await page.addInitScript((t) => localStorage.setItem('ts_oauth_tokens', t), JSON.stringify(tokens));
-}
-
-interface MockApi {
-  calls: string[];
-  // Saved records by game id, shaped like the Lambda's (TYP-16) responses.
-  scores: Record<string, { bestScore: number; bestStreak: number; accuracy: number; totalScore: number }>;
-}
-
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
-};
-
-async function mockApi(page: Page): Promise<MockApi> {
-  const api: MockApi = { calls: [], scores: {} };
-  const badges = new Set<string>();
-  const json = (route: Route, status: number, body: unknown) =>
-    route.fulfill({ status, headers: CORS, contentType: 'application/json', body: JSON.stringify(body) });
-
-  await page.route(/\/me\//, async (route) => {
-    const req = route.request();
-    const method = req.method();
-    const path = new URL(req.url()).pathname;
-    if (method === 'OPTIONS') return route.fulfill({ status: 204, headers: CORS });
-    api.calls.push(`${method} ${path}`);
-    if (!req.headers()['authorization']) return json(route, 401, { message: 'Unauthorized' });
-
-    if (path === '/me/progress' && method === 'GET') return json(route, 200, []);
-    if (path === '/me/badges' && method === 'GET') return json(route, 200, [...badges].map((badgeId) => ({ badgeId })));
-    const badge = path.match(/^\/me\/badges\/(.+)$/);
-    if (badge && method === 'POST') { badges.add(badge[1]); return json(route, 200, { unlocked: true }); }
-
-    if (path === '/me/games' && method === 'GET') {
-      return json(route, 200, Object.entries(api.scores).map(([gameId, s]) => ({ gameId, ...s })));
-    }
-    const game = path.match(/^\/me\/games\/([\w-]+)\/score$/);
-    if (game && method === 'PUT') {
-      const { score, streak, accuracy } = req.postDataJSON();
-      const prev = api.scores[game[1]];
-      const totalScore = (prev?.totalScore ?? 0) + score;
-      const better = !prev || score > prev.bestScore;
-      api.scores[game[1]] = better
-        ? { bestScore: score, bestStreak: streak, accuracy, totalScore }
-        : { ...prev, totalScore };
-      return json(route, 200, { updated: better, gameId: game[1], ...api.scores[game[1]] });
-    }
-    return json(route, 404, { error: 'Not found' });
-  });
-  return api;
-}
-
 test.describe('Post Office game: saving scores', () => {
   test.beforeEach(async ({ isMobile }) => {
     test.skip(isMobile, 'game needs a physical keyboard');
@@ -150,7 +76,7 @@ test.describe('Post Office game: saving scores', () => {
     await signIn(page);
     const api = await mockApi(page);
     await page.clock.install();
-    await page.goto('/games/post-office');
+    await gotoGame(page, GAME_ID);
     await expect(page.getByRole('button', { name: /log out/i })).toBeVisible();
     await expect(page.getByTestId('saved-best')).toBeHidden(); // never played
 
@@ -170,7 +96,7 @@ test.describe('Post Office game: saving scores', () => {
   test('guest rounds are never sent to the API', async ({ page }) => {
     const api = await mockApi(page);
     await page.clock.install();
-    await page.goto('/games/post-office');
+    await gotoGame(page, GAME_ID);
     await startRound(page);
     await typeActiveParcel(page);
     await page.clock.runFor(61_000);
@@ -185,7 +111,7 @@ test.describe('Post Office game on a phone', () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
   test('shows the keyboard-required gate instead of the game', async ({ page }) => {
-    await page.goto('/games/post-office');
+    await gotoGame(page, GAME_ID);
     await expect(page.getByRole('heading', { name: /need a keyboard to play/i })).toBeVisible();
     await expect(page.getByTestId('post-office-instructions')).toBeHidden();
   });
