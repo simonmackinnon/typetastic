@@ -14,8 +14,8 @@ const emptyStats: PlayerStats = {
 };
 
 describe('BADGES', () => {
-  it('has 14 badges', () => {
-    expect(BADGES).toHaveLength(14);
+  it('has 16 badges', () => {
+    expect(BADGES).toHaveLength(16);
   });
 
   it('each badge has unique id', () => {
@@ -91,5 +91,33 @@ describe('Post Office badges', () => {
       'mail-sorter',
       'speed-sorter',
     ]);
+  });
+});
+
+describe('Rockets badges', () => {
+  const ids = (stats: PlayerStats) => checkNewBadges(stats, []).map((b) => b.id);
+  const rk = (best: number, total: number): PlayerStats => ({
+    ...emptyStats,
+    games: { ...zeroGameStats(), rockets: { best, total } },
+  });
+
+  it('Moonshot unlocks at a best single-round altitude of 500 km', () => {
+    expect(ids(rk(499, 0))).not.toContain('moonshot');
+    expect(ids(rk(500, 0))).toContain('moonshot');
+  });
+
+  it('Star Pilot unlocks at 2,000 km flown in total', () => {
+    expect(ids(rk(0, 1999))).not.toContain('star-pilot');
+    expect(ids(rk(0, 2000))).toContain('star-pilot');
+  });
+
+  it('a big Rockets round unlocks only Rockets badges', () => {
+    expect(ids(rk(600, 5000))).toEqual(['moonshot', 'star-pilot']);
+  });
+
+  it('Post Office scores do not unlock Rockets badges', () => {
+    const po: PlayerStats = { ...emptyStats, games: { ...zeroGameStats(), 'post-office': { best: 600, total: 5000 } } };
+    expect(ids(po)).not.toContain('moonshot');
+    expect(ids(po)).not.toContain('star-pilot');
   });
 });

@@ -113,6 +113,22 @@ export const BADGES: Badge[] = [
     color: 'bg-gradient-to-br from-orange-400 to-pink-500',
     condition: (s) => s.games['post-office'].best >= 20,
   },
+  {
+    id: 'moonshot',
+    name: 'Moonshot',
+    description: 'Flew all the way to the Moon in one Rockets round!',
+    icon: '🌙',
+    color: 'bg-gradient-to-br from-indigo-500 to-slate-800',
+    condition: (s) => s.games.rockets.best >= 500,
+  },
+  {
+    id: 'star-pilot',
+    name: 'Star Pilot',
+    description: 'Flew 2,000 km in total in Rockets!',
+    icon: '🧑‍🚀',
+    color: 'bg-gradient-to-br from-sky-400 to-indigo-500',
+    condition: (s) => s.games.rockets.total >= 2000,
+  },
 ];
 
 export function checkNewBadges(stats: PlayerStats, alreadyEarned: string[]): Badge[] {

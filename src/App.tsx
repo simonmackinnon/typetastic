@@ -18,6 +18,7 @@ import GamesHubPage from './pages/GamesHubPage';
 
 // Lazy-loaded so framer-motion (~42 KB gzipped) only downloads for players
 const PostOfficeGamePage = lazy(() => import('./pages/PostOfficeGamePage'));
+const RocketsGamePage = lazy(() => import('./pages/RocketsGamePage'));
 
 // Forces GamePage to fully remount (resetting all state) when the level changes
 function KeyedGamePage() {
@@ -52,6 +53,14 @@ function AppShell() {
             element={
               <Suspense fallback={<div className="p-8 text-center font-body text-gray-500">Loading…</div>}>
                 <PostOfficeGamePage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/games/rockets"
+            element={
+              <Suspense fallback={<div className="p-8 text-center font-body text-gray-500">Loading…</div>}>
+                <RocketsGamePage />
               </Suspense>
             }
           />
