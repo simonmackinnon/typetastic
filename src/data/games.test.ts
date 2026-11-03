@@ -15,8 +15,8 @@ describe('games registry', () => {
     }
   });
 
-  it('Post Office and Rockets are playable so far', () => {
-    expect(GAMES.filter((g) => g.playable).map((g) => g.id)).toEqual(['post-office', 'rockets']);
+  it('Post Office, Rockets and Factories are playable so far', () => {
+    expect(GAMES.filter((g) => g.playable).map((g) => g.id)).toEqual(['post-office', 'rockets', 'factories']);
   });
 
   it('playable games are ones the API saves (have a maxScore)', () => {

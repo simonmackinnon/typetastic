@@ -61,10 +61,10 @@ export const GAMES = [
   {
     id: 'factories',
     name: 'Factories',
-    description: 'Build gadgets on the assembly line.',
+    description: 'Type the parts in order to build toys before each order runs out!',
     Icon: Factory,
-    color: '',
-    playable: false, // becomes playable with the Factories screens ticket
+    color: 'bg-linear-to-br from-teal-400 to-emerald-500',
+    playable: true,
     route: '/games/factories',
     unit: { one: 'toy', many: 'toys' },
     maxScore: 100,

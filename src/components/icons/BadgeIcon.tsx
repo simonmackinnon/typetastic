@@ -1,6 +1,6 @@
 import {
   Keyboard, Home, Building2, Shield, BookOpen, FileText,
-  Zap, Gauge, Trophy, Star, Sparkles, Rocket, Mail, PackageCheck, Moon, Orbit, type LucideIcon
+  Zap, Gauge, Trophy, Star, Sparkles, Rocket, Mail, PackageCheck, Moon, Orbit, Factory, ToyBrick, type LucideIcon
 } from 'lucide-react';
 
 const BADGE_ICON_MAP: Record<string, LucideIcon> = {
@@ -20,6 +20,8 @@ const BADGE_ICON_MAP: Record<string, LucideIcon> = {
   'speed-sorter':     PackageCheck,
   'moonshot':         Moon,
   'star-pilot':       Orbit,
+  'master-builder':   Factory,
+  'toy-maker':        ToyBrick,
 };
 
 interface Props {

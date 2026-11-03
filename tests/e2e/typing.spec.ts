@@ -104,10 +104,10 @@ test.describe('Badges Page', () => {
     await expect(page.getByRole('heading', { name: /badge cabinet/i })).toBeVisible();
   });
 
-  test('shows 16 badge cards', async ({ page }) => {
+  test('shows 18 badge cards', async ({ page }) => {
     await page.goto('/badges');
     const badges = await page.locator('[data-testid^="badge-"]').all();
-    expect(badges).toHaveLength(16);
+    expect(badges).toHaveLength(18);
   });
 
   test('unearned badges are visually distinct', async ({ page }) => {
@@ -132,9 +132,15 @@ test.describe('Games Hub', () => {
     await expect(page.getByTestId('game-post-office')).toHaveAttribute('href', '/games/post-office');
   });
 
+  test('Rockets and Factories cards link to their games', async ({ page }) => {
+    await page.goto('/games');
+    await expect(page.getByTestId('game-rockets')).toHaveAttribute('href', '/games/rockets');
+    await expect(page.getByTestId('game-factories')).toHaveAttribute('href', '/games/factories');
+  });
+
   test('coming-soon cards render disabled', async ({ page }) => {
     await page.goto('/games');
-    for (const id of ['cars', 'trains', 'factories']) {
+    for (const id of ['cars', 'trains']) {
       const card = page.getByTestId(`game-${id}`);
       await expect(card).toBeVisible();
       await expect(card).toHaveAttribute('aria-disabled', 'true');
