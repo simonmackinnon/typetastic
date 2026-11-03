@@ -60,7 +60,7 @@ export default function PostOfficeGame({ onComplete, random, autoStart = false }
         {game.status === 'idle' && (
           <button
             onClick={game.start}
-            className="flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-green-400 to-emerald-500 text-white font-display text-2xl rounded-2xl shadow-lg hover:scale-105 transition-transform active:scale-95"
+            className="flex items-center gap-2 px-10 py-4 bg-linear-to-r from-green-400 to-emerald-500 text-white font-display text-2xl rounded-2xl shadow-lg hover:scale-105 transition-transform active:scale-95"
           >
             <Play size={22} fill="white" /> Start!
           </button>

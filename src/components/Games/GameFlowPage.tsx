@@ -71,7 +71,7 @@ export default function GameFlowPage<R extends GameRoundResult>({
   // ── Results screen ───────────────────────────────────────────────────────
   if (phase === 'results' && result) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-yellow-50 to-green-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-linear-to-b from-yellow-50 to-green-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-lg w-full text-center animate-bounce-in">
           <Icon size={64} className={`${iconColor} mx-auto mb-4`} aria-hidden="true" />
           <h2 className="font-display text-4xl text-purple-700 mb-1">{headline(result)}</h2>
@@ -97,7 +97,7 @@ export default function GameFlowPage<R extends GameRoundResult>({
           <div className="flex flex-col gap-3">
             <button
               onClick={play}
-              className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-display text-xl rounded-2xl hover:scale-105 transition-transform flex items-center justify-center gap-2"
+              className="w-full py-3 bg-linear-to-r from-purple-600 to-pink-500 text-white font-display text-xl rounded-2xl hover:scale-105 transition-transform flex items-center justify-center gap-2"
             >
               <RotateCcw size={18} /> Play Again
             </button>
@@ -115,7 +115,7 @@ export default function GameFlowPage<R extends GameRoundResult>({
 
   // ── Instructions + game ─────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gradient-to-b from-orange-50 to-pink-50 py-8">
+    <div className="min-h-screen bg-linear-to-b from-orange-50 to-pink-50 py-8">
       {/* Mobile: can't play without a physical keyboard (same gate as GamePage) */}
       <div className="md:hidden flex flex-col items-center justify-center min-h-[60vh] text-center px-8 gap-6">
         <div className="text-6xl">⌨️</div>
@@ -126,7 +126,7 @@ export default function GameFlowPage<R extends GameRoundResult>({
         <div className="flex flex-col gap-3 w-full max-w-xs">
           <button
             onClick={() => navigate('/tutorials')}
-            className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-display text-lg rounded-2xl hover:scale-105 transition-transform"
+            className="w-full py-3 bg-linear-to-r from-purple-600 to-pink-500 text-white font-display text-lg rounded-2xl hover:scale-105 transition-transform"
           >
             Browse Tutorials
           </button>
@@ -167,7 +167,7 @@ export default function GameFlowPage<R extends GameRoundResult>({
               )}
               <button
                 onClick={play}
-                className="inline-flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-green-400 to-emerald-500 text-white font-display text-2xl rounded-2xl shadow-lg hover:scale-105 transition-transform active:scale-95"
+                className="inline-flex items-center gap-2 px-10 py-4 bg-linear-to-r from-green-400 to-emerald-500 text-white font-display text-2xl rounded-2xl shadow-lg hover:scale-105 transition-transform active:scale-95"
               >
                 <Play size={22} fill="white" /> Start!
               </button>

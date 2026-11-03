@@ -1,6 +1,31 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+/* Keep the existing JS theme (fonts, animations, keyframes, brand colours). */
+@config '../tailwind.config.js';
+
+/*
+  Tailwind v4 changed a few base defaults. These restore the v3 behaviour so
+  the site looks and feels the same after the upgrade.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-gray-400);
+  }
+
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+}
 
 @layer base {
   html {

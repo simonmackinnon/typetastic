@@ -17,7 +17,7 @@ export default function MobileBanner() {
   };
 
   return (
-    <div className="md:hidden bg-gradient-to-r from-purple-700 to-pink-600 text-white px-4 py-3">
+    <div className="md:hidden bg-linear-to-r from-purple-700 to-pink-600 text-white px-4 py-3">
       <div className="flex items-start gap-3">
         <Keyboard size={20} className="shrink-0 mt-0.5" aria-hidden="true" />
         <div className="flex-1 min-w-0">

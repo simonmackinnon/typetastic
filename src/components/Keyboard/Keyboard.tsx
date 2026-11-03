@@ -71,7 +71,7 @@ export default function Keyboard({ nextChar, highlightKeys = [], visible = true 
           { label: 'Right pinky', color: 'bg-teal-400' },
         ].map(({ label, color }) => (
           <div key={label} className="flex items-center gap-1">
-            <div className={`w-3 h-3 rounded-sm ${color}`} />
+            <div className={`w-3 h-3 rounded-xs ${color}`} />
             <span className="text-gray-400 text-xs font-body">{label}</span>
           </div>
         ))}

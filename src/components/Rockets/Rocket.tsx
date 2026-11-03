@@ -37,7 +37,7 @@ export default function Rocket({ altitude, fuel }: Props) {
         {/* Flame size follows fuel; a sputtering engine flickers instead */}
         <div
           aria-hidden="true"
-          className={`w-4 rounded-b-full bg-gradient-to-b from-yellow-300 via-orange-500 to-red-500 transition-[height] duration-100 ease-linear ${empty ? 'animate-pulse opacity-40' : ''}`}
+          className={`w-4 rounded-b-full bg-linear-to-b from-yellow-300 via-orange-500 to-red-500 transition-[height] duration-100 ease-linear ${empty ? 'animate-pulse opacity-40' : ''}`}
           style={{ height: empty ? 4 : 8 + fuel * 0.4 }}
         />
       </motion.div>

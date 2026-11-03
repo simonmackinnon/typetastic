@@ -70,7 +70,7 @@ export const BADGES: Badge[] = [
     name: 'Touch Type Master',
     description: 'Completed all 20 levels!',
     icon: '🏆',
-    color: 'bg-gradient-to-br from-yellow-400 to-orange-400',
+    color: 'bg-linear-to-br from-yellow-400 to-orange-400',
     condition: (s) => s.levelsCompleted >= 20,
   },
   {
@@ -94,7 +94,7 @@ export const BADGES: Badge[] = [
     name: 'Rockstar Typer',
     description: 'Smashed 50 words per minute!',
     icon: '🚀',
-    color: 'bg-gradient-to-br from-purple-500 to-pink-500',
+    color: 'bg-linear-to-br from-purple-500 to-pink-500',
     condition: (s) => s.bestWpm >= 50,
   },
   {
@@ -110,7 +110,7 @@ export const BADGES: Badge[] = [
     name: 'Speed Sorter',
     description: 'Sorted 20 parcels in a single Post Office round!',
     icon: '📦',
-    color: 'bg-gradient-to-br from-orange-400 to-pink-500',
+    color: 'bg-linear-to-br from-orange-400 to-pink-500',
     condition: (s) => s.games['post-office'].best >= 20,
   },
   {
@@ -118,7 +118,7 @@ export const BADGES: Badge[] = [
     name: 'Moonshot',
     description: 'Flew all the way to the Moon in one Rockets round!',
     icon: '🌙',
-    color: 'bg-gradient-to-br from-indigo-500 to-slate-800',
+    color: 'bg-linear-to-br from-indigo-500 to-slate-800',
     condition: (s) => s.games.rockets.best >= 500,
   },
   {
@@ -126,7 +126,7 @@ export const BADGES: Badge[] = [
     name: 'Star Pilot',
     description: 'Flew 2,000 km in total in Rockets!',
     icon: '🧑‍🚀',
-    color: 'bg-gradient-to-br from-sky-400 to-indigo-500',
+    color: 'bg-linear-to-br from-sky-400 to-indigo-500',
     condition: (s) => s.games.rockets.total >= 2000,
   },
 ];

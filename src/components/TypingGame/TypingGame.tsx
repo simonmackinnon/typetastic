@@ -88,7 +88,7 @@ export default function TypingGame({
       {game.status === 'idle' && (
         <button
           onClick={game.start}
-          className="px-10 py-4 bg-gradient-to-r from-green-400 to-emerald-500 text-white font-display text-2xl rounded-2xl shadow-lg hover:scale-105 transition-transform active:scale-95"
+          className="px-10 py-4 bg-linear-to-r from-green-400 to-emerald-500 text-white font-display text-2xl rounded-2xl shadow-lg hover:scale-105 transition-transform active:scale-95"
         >
           <Play size={22} fill="white" /> Start!
         </button>
@@ -169,7 +169,7 @@ export default function TypingGame({
 
       {/* Complete celebration */}
       {game.status === 'complete' && game.result && (
-        <div className="flex flex-col items-center gap-3 p-6 bg-gradient-to-br from-yellow-50 to-green-50 rounded-2xl border-2 border-yellow-300 shadow-lg w-full animate-bounce-in">
+        <div className="flex flex-col items-center gap-3 p-6 bg-linear-to-br from-yellow-50 to-green-50 rounded-2xl border-2 border-yellow-300 shadow-lg w-full animate-bounce-in">
           <div className="text-5xl">🎉</div>
           <p className="font-display text-2xl text-green-700">Exercise complete!</p>
           <div className="flex gap-8">

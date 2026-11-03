@@ -90,7 +90,7 @@ export default function AuthModal({ onClose }: Props) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
-                  className="w-full px-4 py-2.5 border-2 border-purple-200 rounded-xl font-body focus:outline-none focus:border-purple-500 transition"
+                  className="w-full px-4 py-2.5 border-2 border-purple-200 rounded-xl font-body focus:outline-hidden focus:border-purple-500 transition"
                 />
               </div>
               <div>
@@ -104,7 +104,7 @@ export default function AuthModal({ onClose }: Props) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full px-4 py-2.5 border-2 border-purple-200 rounded-xl font-body focus:outline-none focus:border-purple-500 transition"
+                  className="w-full px-4 py-2.5 border-2 border-purple-200 rounded-xl font-body focus:outline-hidden focus:border-purple-500 transition"
                 />
               </div>
             </>
@@ -121,7 +121,7 @@ export default function AuthModal({ onClose }: Props) {
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 placeholder="123456"
-                className="w-full px-4 py-2.5 border-2 border-purple-200 rounded-xl font-body focus:outline-none focus:border-purple-500 transition text-center text-2xl tracking-widest"
+                className="w-full px-4 py-2.5 border-2 border-purple-200 rounded-xl font-body focus:outline-hidden focus:border-purple-500 transition text-center text-2xl tracking-widest"
               />
             </div>
           )}
@@ -136,7 +136,7 @@ export default function AuthModal({ onClose }: Props) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-body font-bold text-lg rounded-xl hover:shadow-lg transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full py-3 bg-linear-to-r from-purple-600 to-pink-500 text-white font-body font-bold text-lg rounded-xl hover:shadow-lg transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {loading ? (
               <><Loader2 size={18} className="animate-spin" /> Loading…</>
