@@ -8,13 +8,13 @@ export default function LandingPage() {
   const { stats } = useProgress();
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-50 via-pink-50 to-yellow-50">
+    <div className="min-h-screen bg-linear-to-b from-purple-50 via-pink-50 to-yellow-50">
       {/* Hero */}
       <section className="text-center py-16 px-4">
         <div className="animate-float inline-block mb-4">
           <img src="/logo.svg" alt="" className="w-24 h-24 mx-auto drop-shadow-xl" />
         </div>
-        <h1 className="font-display text-6xl sm:text-7xl text-purple-700 mb-4 drop-shadow-sm">
+        <h1 className="font-display text-6xl sm:text-7xl text-purple-700 mb-4 drop-shadow-xs">
           TypeStar!
         </h1>
         <p className="font-body text-xl text-gray-600 max-w-xl mx-auto mb-8">
@@ -24,7 +24,7 @@ export default function LandingPage() {
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link
             to="/play/01"
-            className="flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-display text-2xl rounded-2xl shadow-lg hover:scale-105 transition-transform active:scale-95"
+            className="flex items-center gap-2 px-10 py-4 bg-linear-to-r from-purple-600 to-pink-500 text-white font-display text-2xl rounded-2xl shadow-lg hover:scale-105 transition-transform active:scale-95"
           >
             <Play size={24} fill="white" /> Play Now!
           </Link>
@@ -68,7 +68,7 @@ export default function LandingPage() {
             return (
               <div
                 key={zone}
-                className={`${color} border-2 rounded-2xl p-5 text-center shadow-sm hover:shadow-md transition-shadow`}
+                className={`${color} border-2 rounded-2xl p-5 text-center shadow-xs hover:shadow-md transition-shadow`}
               >
                 <div className="flex justify-center mb-3">
                   <ZoneIcon zone={zone as 1|2|3|4|5|6} size={56} />

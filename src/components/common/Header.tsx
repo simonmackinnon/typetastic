@@ -25,7 +25,7 @@ export default function Header() {
 
   return (
     <>
-      <header className="bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 shadow-lg">
+      <header className="bg-linear-to-r from-purple-600 via-pink-500 to-orange-400 shadow-lg">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
           {/* Logo + wordmark */}
           <Link to="/" className="flex items-center gap-3 group">

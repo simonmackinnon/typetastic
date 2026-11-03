@@ -45,7 +45,7 @@ export default function LevelTutorialModal({ level, onContinue, onDismiss }: Pro
       <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl animate-bounce-in overflow-hidden">
 
         {/* Coloured header */}
-        <div className={`bg-gradient-to-r ${zoneColors[level.zone] ?? 'from-purple-500 to-pink-400'} p-6 flex items-center gap-5`}>
+        <div className={`bg-linear-to-r ${zoneColors[level.zone] ?? 'from-purple-500 to-pink-400'} p-6 flex items-center gap-5`}>
           <ZoneIcon zone={level.zone as 1|2|3|4|5|6} size={72} />
           <div className="text-white">
             <p className="font-body text-sm text-white/70 uppercase tracking-wide">
@@ -90,7 +90,7 @@ export default function LevelTutorialModal({ level, onContinue, onDismiss }: Pro
               onClick={() => { stop(); onContinue(); }}
               className={`
                 w-full py-4 rounded-2xl font-display text-xl text-white shadow-lg
-                bg-gradient-to-r ${zoneColors[level.zone] ?? 'from-purple-500 to-pink-500'}
+                bg-linear-to-r ${zoneColors[level.zone] ?? 'from-purple-500 to-pink-500'}
                 hover:scale-105 transition-transform flex items-center justify-center gap-2
               `}
             >

@@ -36,7 +36,7 @@ export default function LevelInfoModal({ level, unlocked, onClose }: Props) {
     >
       <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl animate-bounce-in overflow-hidden">
         {/* Coloured header */}
-        <div className={`bg-gradient-to-r ${zoneGradients[level.zone] ?? 'from-purple-500 to-pink-400'} p-5 flex items-center gap-4`}>
+        <div className={`bg-linear-to-r ${zoneGradients[level.zone] ?? 'from-purple-500 to-pink-400'} p-5 flex items-center gap-4`}>
           <ZoneIcon zone={level.zone as 1|2|3|4|5|6} size={56} />
           <div className="text-white flex-1 min-w-0">
             <p className="font-body text-xs text-white/70 uppercase tracking-wide">
@@ -71,7 +71,7 @@ export default function LevelInfoModal({ level, unlocked, onClose }: Props) {
                 {level.highlightKeys.map((k) => (
                   <span
                     key={k}
-                    className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-purple-100 text-purple-700 font-display text-lg font-bold uppercase shadow-sm"
+                    className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-purple-100 text-purple-700 font-display text-lg font-bold uppercase shadow-xs"
                   >
                     {k}
                   </span>
@@ -114,7 +114,7 @@ export default function LevelInfoModal({ level, unlocked, onClose }: Props) {
             {unlocked && (
               <button
                 onClick={goPlay}
-                className={`w-full py-3 rounded-2xl font-display text-lg text-white flex items-center justify-center gap-2 bg-gradient-to-r ${zoneGradients[level.zone]} hover:scale-105 transition-transform shadow`}
+                className={`w-full py-3 rounded-2xl font-display text-lg text-white flex items-center justify-center gap-2 bg-linear-to-r ${zoneGradients[level.zone]} hover:scale-105 transition-transform shadow`}
               >
                 <Play size={18} fill="white" />
                 {stars > 0 ? 'Play Again' : 'Start Level'}

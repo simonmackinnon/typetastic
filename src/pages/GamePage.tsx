@@ -121,7 +121,7 @@ export default function GamePage() {
   if (isAssessment && finished && finalResult) {
     const passed = finalResult.accuracy >= level.requiredAccuracy;
     return (
-      <div className="min-h-screen bg-gradient-to-b from-purple-50 to-pink-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-linear-to-b from-purple-50 to-pink-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full text-center animate-bounce-in">
           {passed ? (
             <CheckCircle size={64} className="text-green-500 mx-auto mb-4" />
@@ -160,7 +160,7 @@ export default function GamePage() {
             {passed && nextLevel && (
               <button
                 onClick={() => navigate(`/play/${nextLevel.id}`)}
-                className="w-full py-3 bg-gradient-to-r from-green-400 to-emerald-500 text-white font-display text-lg rounded-2xl hover:scale-105 transition-transform flex items-center justify-center gap-2"
+                className="w-full py-3 bg-linear-to-r from-green-400 to-emerald-500 text-white font-display text-lg rounded-2xl hover:scale-105 transition-transform flex items-center justify-center gap-2"
               >
                 <ArrowRight size={18} /> Play {nextLevel.name}
               </button>
@@ -168,7 +168,7 @@ export default function GamePage() {
             {passed && (
               <button
                 onClick={() => navigate(`/play/${level.id}`)}
-                className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-display text-lg rounded-2xl hover:scale-105 transition-transform flex items-center justify-center gap-2"
+                className="w-full py-3 bg-linear-to-r from-purple-600 to-pink-500 text-white font-display text-lg rounded-2xl hover:scale-105 transition-transform flex items-center justify-center gap-2"
               >
                 <Play size={18} fill="white" /> Play Level {level.number} for Stars
               </button>
@@ -176,7 +176,7 @@ export default function GamePage() {
             {!passed && (
               <button
                 onClick={() => { setResults([]); setExerciseIndex(0); setFinished(false); }}
-                className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-display text-lg rounded-2xl hover:scale-105 transition-transform flex items-center justify-center gap-2"
+                className="w-full py-3 bg-linear-to-r from-purple-600 to-pink-500 text-white font-display text-lg rounded-2xl hover:scale-105 transition-transform flex items-center justify-center gap-2"
               >
                 <RotateCcw size={18} /> Try Again
               </button>
@@ -196,7 +196,7 @@ export default function GamePage() {
   // ── Regular results screen ───────────────────────────────────────────────
   if (finished && finalResult) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-yellow-50 to-green-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-linear-to-b from-yellow-50 to-green-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-lg w-full text-center animate-bounce-in">
           <div className="flex justify-center mb-4">
             {finalResult.stars === 3
@@ -234,14 +234,14 @@ export default function GamePage() {
           <div className="flex flex-col gap-3">
             <button
               onClick={() => { setExerciseIndex(0); setResults([]); setFinished(false); }}
-              className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-display text-xl rounded-2xl hover:scale-105 transition-transform flex items-center justify-center gap-2"
+              className="w-full py-3 bg-linear-to-r from-purple-600 to-pink-500 text-white font-display text-xl rounded-2xl hover:scale-105 transition-transform flex items-center justify-center gap-2"
             >
               <RotateCcw size={18} /> Try Again
             </button>
             {nextLevel && (
               <button
                 onClick={() => navigate(`/play/${nextLevel.id}`)}
-                className="w-full py-3 bg-gradient-to-r from-green-400 to-emerald-500 text-white font-display text-xl rounded-2xl hover:scale-105 transition-transform flex items-center justify-center gap-2"
+                className="w-full py-3 bg-linear-to-r from-green-400 to-emerald-500 text-white font-display text-xl rounded-2xl hover:scale-105 transition-transform flex items-center justify-center gap-2"
               >
                 <ArrowRight size={18} /> Next Level: {nextLevel.name}
               </button>
@@ -268,7 +268,7 @@ export default function GamePage() {
 
   // ── Game screen ──────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-50 to-pink-50 py-8">
+    <div className="min-h-screen bg-linear-to-b from-purple-50 to-pink-50 py-8">
       {/* Per-level tutorial overlay — works on mobile too */}
       {showTutorial && level && (
         <LevelTutorialModal
@@ -288,7 +288,7 @@ export default function GamePage() {
         <div className="flex flex-col gap-3 w-full max-w-xs">
           <button
             onClick={() => navigate('/tutorials')}
-            className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-display text-lg rounded-2xl hover:scale-105 transition-transform"
+            className="w-full py-3 bg-linear-to-r from-purple-600 to-pink-500 text-white font-display text-lg rounded-2xl hover:scale-105 transition-transform"
           >
             Browse Tutorials
           </button>

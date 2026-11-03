@@ -5,7 +5,7 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import GamesHubPage from './GamesHubPage';
 import { GAMES } from '../data/games';
 
-const COMING_SOON = ['cars', 'trains', 'factories'];
+const COMING_SOON = ['cars', 'trains'];
 
 function renderHub() {
   return render(
@@ -31,6 +31,7 @@ describe('GamesHubPage', () => {
     expect(screen.getByRole('heading', { name: 'Games' })).toBeInTheDocument();
     expect(screen.getByTestId('game-post-office')).toBeInTheDocument();
     expect(screen.getByTestId('game-rockets')).toBeInTheDocument();
+    expect(screen.getByTestId('game-factories')).toBeInTheDocument();
     for (const id of COMING_SOON) {
       expect(screen.getByTestId(`game-${id}`)).toBeInTheDocument();
     }
@@ -52,6 +53,14 @@ describe('GamesHubPage', () => {
     expect(card).not.toHaveAttribute('aria-disabled');
   });
 
+  it('Factories card links to /games/factories', () => {
+    renderHub();
+    const card = screen.getByTestId('game-factories');
+    expect(card.tagName).toBe('A');
+    expect(card).toHaveAttribute('href', '/games/factories');
+    expect(card).not.toHaveAttribute('aria-disabled');
+  });
+
   it('coming-soon cards are disabled, not links, and labelled', () => {
     renderHub();
     for (const id of COMING_SOON) {
@@ -61,7 +70,7 @@ describe('GamesHubPage', () => {
       expect(card).toHaveAttribute('aria-disabled', 'true');
       expect(card).toHaveTextContent(/coming soon/i);
     }
-    expect(screen.getAllByRole('link')).toHaveLength(2);
+    expect(screen.getAllByRole('link')).toHaveLength(3);
   });
 
   it('clicking a coming-soon card does not navigate', async () => {

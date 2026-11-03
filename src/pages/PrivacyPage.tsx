@@ -1,7 +1,7 @@
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white pb-16">
-      <div className="bg-gradient-to-r from-purple-600 to-pink-500 py-12 text-center text-white px-4">
+    <div className="min-h-screen bg-linear-to-b from-purple-50 to-white pb-16">
+      <div className="bg-linear-to-r from-purple-600 to-pink-500 py-12 text-center text-white px-4">
         <h1 className="font-display text-5xl mb-2">Privacy Policy</h1>
         <p className="font-body text-white/80 text-sm">Last updated: June 2026</p>
       </div>

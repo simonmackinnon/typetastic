@@ -55,7 +55,7 @@ export default function RocketsGame({ onComplete, random, autoStart = false }: P
         {game.status === 'idle' && (
           <button
             onClick={game.start}
-            className="flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-green-400 to-emerald-500 text-white font-display text-2xl rounded-2xl shadow-lg hover:scale-105 transition-transform active:scale-95"
+            className="flex items-center gap-2 px-10 py-4 bg-linear-to-r from-green-400 to-emerald-500 text-white font-display text-2xl rounded-2xl shadow-lg hover:scale-105 transition-transform active:scale-95"
           >
             <Play size={22} fill="white" /> Start!
           </button>
@@ -97,7 +97,7 @@ export default function RocketsGame({ onComplete, random, autoStart = false }: P
             <div
               data-testid="sky"
               data-stage={stage.name}
-              className={`relative w-full h-72 rounded-3xl overflow-hidden border-4 border-white shadow-xl bg-gradient-to-t ${SKY_BY_STAGE[game.stage]} transition-colors duration-700`}
+              className={`relative w-full h-72 rounded-3xl overflow-hidden border-4 border-white shadow-xl bg-linear-to-t ${SKY_BY_STAGE[game.stage]} transition-colors duration-700`}
             >
               <span className="absolute top-3 left-4 font-display text-lg text-white drop-shadow">{stage.name}</span>
               <Rocket altitude={game.altitude} fuel={game.fuel} />

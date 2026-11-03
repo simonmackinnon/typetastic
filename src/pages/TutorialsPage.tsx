@@ -14,7 +14,7 @@ function TipCard({ tip }: { tip: typeof TIPS[number] }) {
   };
 
   return (
-    <div className={`bg-gradient-to-br ${tip.gradient} rounded-3xl p-6 text-white shadow-lg hover:scale-105 transition-transform`}>
+    <div className={`bg-linear-to-br ${tip.gradient} rounded-3xl p-6 text-white shadow-lg hover:scale-105 transition-transform`}>
       <div className="flex items-start justify-between mb-4">
         <TipIcon type={tip.type} size={72} />
         <button
@@ -97,7 +97,7 @@ function PostureGuide() {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
       {items.map(({ label, fill }) => (
-        <div key={label} className="flex flex-col items-center gap-3 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-5 hover:scale-105 transition-transform">
+        <div key={label} className="flex flex-col items-center gap-3 bg-linear-to-br from-indigo-50 to-purple-50 rounded-2xl p-5 hover:scale-105 transition-transform">
           <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
             <circle cx="26" cy="26" r="26" fill={fill} opacity="0.15" />
             <circle cx="26" cy="26" r="20" fill={fill} opacity="0.25" />
@@ -113,9 +113,9 @@ function PostureGuide() {
 
 export default function TutorialsPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-50 via-pink-50 to-yellow-50 pb-16">
+    <div className="min-h-screen bg-linear-to-b from-purple-50 via-pink-50 to-yellow-50 pb-16">
       {/* Hero */}
-      <div className="bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 py-14 text-center text-white px-4">
+      <div className="bg-linear-to-r from-purple-600 via-pink-500 to-orange-400 py-14 text-center text-white px-4">
         <div className="flex justify-center mb-4">
           <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
             <circle cx="40" cy="40" r="40" fill="rgba(255,255,255,0.2)" />
@@ -173,7 +173,7 @@ export default function TutorialsPage() {
           <p className="font-body text-gray-500 mb-6">Head to the Level Map and start with Level 1 — Home Base!</p>
           <Link
             to="/map"
-            className="inline-block px-10 py-4 bg-gradient-to-r from-purple-600 to-pink-500
+            className="inline-block px-10 py-4 bg-linear-to-r from-purple-600 to-pink-500
                        text-white font-display text-2xl rounded-2xl shadow-lg hover:scale-105 transition-transform"
           >
             Go to Level Map

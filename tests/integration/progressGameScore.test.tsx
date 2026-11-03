@@ -217,6 +217,19 @@ describe('games platform (TYP-17)', () => {
     expect(reloaded.result.current.gameScores.rockets).toEqual({ bestScore: 640, bestStreak: 9, accuracy: 95, totalScore: 640 });
   });
 
+  it('a Factories round round-trips through the same plumbing (TYP-22)', async () => {
+    const first = await loadPage(KID);
+    await act(() => first.result.current.submitGameScore('factories', round(9, 4, 97)));
+    await act(() => first.result.current.submitGameScore('factories', round(6, 2, 90)));
+    expect(requests).toContain('PUT /me/games/factories/score');
+    expect(table.get(keyOf('kid-1', 'game#factories#best'))).toMatchObject({ bestScore: 9, totalScore: 15 });
+    first.unmount();
+
+    const reloaded = await loadPage(KID);
+    expect(reloaded.result.current.stats.games.factories).toEqual({ best: 9, total: 15 });
+    expect(reloaded.result.current.gameScores.factories).toEqual({ bestScore: 9, bestStreak: 4, accuracy: 97, totalScore: 15 });
+  });
+
   it('each game keeps its own best and total across a reload', async () => {
     const first = await loadPage(KID);
     await act(() => first.result.current.submitGameScore('post-office', round(12)));

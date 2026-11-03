@@ -12,10 +12,10 @@ const ZONES = [
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-50 via-pink-50 to-yellow-50 pb-16">
+    <div className="min-h-screen bg-linear-to-b from-purple-50 via-pink-50 to-yellow-50 pb-16">
 
       {/* Hero */}
-      <div className="bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 py-14 text-center text-white px-4">
+      <div className="bg-linear-to-r from-purple-600 via-pink-500 to-orange-400 py-14 text-center text-white px-4">
         <div className="flex justify-center mb-4">
           <Keyboard size={64} className="opacity-90" />
         </div>
@@ -48,7 +48,7 @@ export default function AboutPage() {
           <div className="grid sm:grid-cols-2 gap-4">
             {ZONES.map((z, i) => (
               <div key={z.name} className="bg-white rounded-2xl shadow p-5 flex gap-4 items-start">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-400 flex items-center justify-center text-white font-display text-lg shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-linear-to-br from-purple-500 to-pink-400 flex items-center justify-center text-white font-display text-lg shrink-0">
                   {i + 1}
                 </div>
                 <div>
@@ -118,7 +118,7 @@ export default function AboutPage() {
             href="https://theclouddevopslearningblog.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-body font-bold rounded-xl text-sm hover:scale-105 transition-transform"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-linear-to-r from-purple-600 to-pink-500 text-white font-body font-bold rounded-xl text-sm hover:scale-105 transition-transform"
           >
             Visit the blog <ExternalLink size={14} />
           </a>
@@ -130,7 +130,7 @@ export default function AboutPage() {
           <div className="flex flex-wrap justify-center gap-4">
             <Link
               to="/map"
-              className="px-8 py-3 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-display text-xl rounded-2xl shadow-lg hover:scale-105 transition-transform"
+              className="px-8 py-3 bg-linear-to-r from-purple-600 to-pink-500 text-white font-display text-xl rounded-2xl shadow-lg hover:scale-105 transition-transform"
             >
               Go to Level Map
             </Link>
