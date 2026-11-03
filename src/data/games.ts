@@ -30,10 +30,10 @@ export const GAMES = [
   {
     id: 'rockets',
     name: 'Rockets',
-    description: 'Launch rockets with lightning-fast typing.',
+    description: 'Type space words to fuel your rocket and fly to the Moon!',
     Icon: Rocket,
-    color: '',
-    playable: false, // becomes playable with the Rockets screens ticket
+    color: 'bg-gradient-to-br from-indigo-500 to-sky-400',
+    playable: true,
     route: '/games/rockets',
     unit: { one: 'km', many: 'km' },
     maxScore: 1000,

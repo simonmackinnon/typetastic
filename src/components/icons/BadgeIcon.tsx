@@ -1,6 +1,6 @@
 import {
   Keyboard, Home, Building2, Shield, BookOpen, FileText,
-  Zap, Gauge, Trophy, Star, Sparkles, Rocket, Mail, PackageCheck, type LucideIcon
+  Zap, Gauge, Trophy, Star, Sparkles, Rocket, Mail, PackageCheck, Moon, Orbit, type LucideIcon
 } from 'lucide-react';
 
 const BADGE_ICON_MAP: Record<string, LucideIcon> = {
@@ -18,6 +18,8 @@ const BADGE_ICON_MAP: Record<string, LucideIcon> = {
   'rockstar':         Rocket,
   'mail-sorter':      Mail,
   'speed-sorter':     PackageCheck,
+  'moonshot':         Moon,
+  'star-pilot':       Orbit,
 };
 
 interface Props {
