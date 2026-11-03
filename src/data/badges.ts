@@ -129,6 +129,22 @@ export const BADGES: Badge[] = [
     color: 'bg-linear-to-br from-sky-400 to-indigo-500',
     condition: (s) => s.games.rockets.total >= 2000,
   },
+  {
+    id: 'master-builder',
+    name: 'Master Builder',
+    description: 'Built 10 toys in a single Factories round!',
+    icon: '🏭',
+    color: 'bg-linear-to-br from-teal-400 to-emerald-600',
+    condition: (s) => s.games.factories.best >= 10,
+  },
+  {
+    id: 'toy-maker',
+    name: 'Toy Maker',
+    description: 'Built 30 toys in total in Factories!',
+    icon: '🧸',
+    color: 'bg-linear-to-br from-amber-400 to-teal-500',
+    condition: (s) => s.games.factories.total >= 30,
+  },
 ];
 
 export function checkNewBadges(stats: PlayerStats, alreadyEarned: string[]): Badge[] {

@@ -14,8 +14,8 @@ const emptyStats: PlayerStats = {
 };
 
 describe('BADGES', () => {
-  it('has 16 badges', () => {
-    expect(BADGES).toHaveLength(16);
+  it('has 18 badges', () => {
+    expect(BADGES).toHaveLength(18);
   });
 
   it('each badge has unique id', () => {
@@ -119,5 +119,36 @@ describe('Rockets badges', () => {
     const po: PlayerStats = { ...emptyStats, games: { ...zeroGameStats(), 'post-office': { best: 600, total: 5000 } } };
     expect(ids(po)).not.toContain('moonshot');
     expect(ids(po)).not.toContain('star-pilot');
+  });
+});
+
+describe('Factories badges', () => {
+  const ids = (stats: PlayerStats) => checkNewBadges(stats, []).map((b) => b.id);
+  const fa = (best: number, total: number): PlayerStats => ({
+    ...emptyStats,
+    games: { ...zeroGameStats(), factories: { best, total } },
+  });
+
+  it('Master Builder unlocks at a best single round of 10 toys', () => {
+    expect(ids(fa(9, 0))).not.toContain('master-builder');
+    expect(ids(fa(10, 0))).toContain('master-builder');
+  });
+
+  it('Toy Maker unlocks at 30 toys built in total', () => {
+    expect(ids(fa(0, 29))).not.toContain('toy-maker');
+    expect(ids(fa(0, 30))).toContain('toy-maker');
+  });
+
+  it('a big Factories round unlocks only Factories badges', () => {
+    expect(ids(fa(25, 1000))).toEqual(['master-builder', 'toy-maker']);
+  });
+
+  it('other games do not unlock Factories badges', () => {
+    const other: PlayerStats = {
+      ...emptyStats,
+      games: { ...zeroGameStats(), 'post-office': { best: 50, total: 500 }, rockets: { best: 900, total: 9000 } },
+    };
+    expect(ids(other)).not.toContain('master-builder');
+    expect(ids(other)).not.toContain('toy-maker');
   });
 });
