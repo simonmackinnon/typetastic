@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { gotoGame, mockApi, signIn, startRound as startGameRound } from './helpers/games';
+import { gotoGame, mockApi, pauseClock, runUntilResults, signIn, startRound as startGameRound } from './helpers/games';
 
 // The round is 60s long; Playwright's fake clock lets us fast-forward through
 // the countdown and the round instead of waiting in real time.
@@ -63,13 +63,14 @@ test.describe('Rockets game', () => {
     await page.clock.install();
     await gotoGame(page, GAME_ID);
     await startRound(page);
-    // Two words every 2s keeps the tank from running dry.
+    await pauseClock(page); // the loop below must not drift on a slow runner
+    // Two words every 2s keeps the rocket well above stall speed.
     for (let s = 0; s < 30; s++) {
       await typeActiveWord(page);
       await typeActiveWord(page);
       await page.clock.runFor(2_000);
     }
-    await page.clock.runFor(1_000);
+    await runUntilResults(page);
 
     await expect(page.getByText(/rockets round complete/i)).toBeVisible();
     await expect(page.getByTestId('result-score')).toContainText('km');
