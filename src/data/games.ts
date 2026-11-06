@@ -30,7 +30,7 @@ export const GAMES = [
   {
     id: 'rockets',
     name: 'Rockets',
-    description: 'Type space words to fuel your rocket and fly to the Moon!',
+    description: "Every word you type fires your rocket's engine. Fly to the Moon!",
     Icon: Rocket,
     color: 'bg-linear-to-br from-indigo-500 to-sky-400',
     playable: true,

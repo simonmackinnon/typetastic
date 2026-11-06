@@ -45,11 +45,11 @@ function playRound(r: RocketsRoundResult) {
 }
 
 describe('RocketsGamePage', () => {
-  it('explains fuel, the stages and the 5s empty-tank rule', () => {
+  it('explains thrust, the stages and the 5s stall rule', () => {
     renderPage();
     const instructions = screen.getByTestId('rockets-instructions');
-    expect(instructions).toHaveTextContent(/fuel/i);
-    expect(instructions).toHaveTextContent(/empty for 5 seconds/i);
+    expect(instructions).toHaveTextContent(/every space word you finish fires the engine/i);
+    expect(instructions).toHaveTextContent(/stalls for 5 seconds/i);
     for (const stage of ['Sky', 'Clouds', 'Space', 'Satellites', 'Moon']) {
       expect(instructions).toHaveTextContent(stage);
     }
@@ -73,10 +73,10 @@ describe('RocketsGamePage', () => {
     expect(submitGameScore).toHaveBeenCalledWith('rockets', result());
   });
 
-  it('headlines an early ending "Out of fuel!"', () => {
+  it('headlines an early ending "Stalled!"', () => {
     renderPage();
-    playRound(result({ endedBy: 'fuel', stage: 1, score: 80 }));
-    expect(screen.getByRole('heading', { name: 'Out of fuel!' })).toBeInTheDocument();
+    playRound(result({ endedBy: 'stall', stage: 1, score: 80 }));
+    expect(screen.getByRole('heading', { name: 'Stalled!' })).toBeInTheDocument();
   });
 
   it('headlines a round that reached the Moon "Moonshot!"', () => {
@@ -89,8 +89,8 @@ describe('RocketsGamePage', () => {
 describe('resultsHeadline', () => {
   it('picks a headline from how the round went', () => {
     expect(resultsHeadline(result({ stage: 4, endedBy: 'time' }))).toBe('Moonshot!');
-    expect(resultsHeadline(result({ stage: 4, endedBy: 'fuel' }))).toBe('Moonshot!'); // reaching the Moon wins
-    expect(resultsHeadline(result({ stage: 1, endedBy: 'fuel' }))).toBe('Out of fuel!');
+    expect(resultsHeadline(result({ stage: 4, endedBy: 'stall' }))).toBe('Moonshot!'); // reaching the Moon wins
+    expect(resultsHeadline(result({ stage: 1, endedBy: 'stall' }))).toBe('Stalled!');
     expect(resultsHeadline(result({ stage: 2 }))).toBe('Into space!');
     expect(resultsHeadline(result({ stage: 1, score: 60 }))).toBe('Nice flying!');
     expect(resultsHeadline(result({ stage: 0, score: 0 }))).toBe('Keep practising!');

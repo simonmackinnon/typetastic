@@ -1,13 +1,13 @@
-import { Rocket, Fuel, Mountain, Timer, Trophy, Layers, Type, Target, Flame } from 'lucide-react';
+import { Rocket, Zap, Gauge, Mountain, Timer, Trophy, Layers, Type, Target, Flame } from 'lucide-react';
 import GameFlowPage from '../components/Games/GameFlowPage';
 import RocketsGame from '../components/Rockets/RocketsGame';
-import { STAGES, EMPTY_LIMIT_MS, type RocketsRoundResult } from '../hooks/useRocketsGame';
+import { STAGES, STALL_LIMIT_MS, type RocketsRoundResult } from '../hooks/useRocketsGame';
 
 const MOON = STAGES.length - 1;
 
 export function resultsHeadline({ stage, endedBy, score }: RocketsRoundResult): string {
   if (stage >= MOON) return 'Moonshot!';
-  if (endedBy === 'fuel') return 'Out of fuel!';
+  if (endedBy === 'stall') return 'Stalled!';
   if (stage >= 2) return 'Into space!';
   if (score > 0) return 'Nice flying!';
   return 'Keep practising!';
@@ -27,16 +27,16 @@ const instructions = (
   <>
     <ul className="font-body text-gray-600 text-left space-y-3 mb-6">
       <li className="flex gap-3">
-        <Fuel size={20} className="shrink-0 text-green-500 mt-0.5" aria-hidden="true" />
-        Type the space words to fuel your rocket. Every correct letter adds fuel, and the tank slowly drains.
+        <Zap size={20} className="shrink-0 text-orange-500 mt-0.5" aria-hidden="true" />
+        Your rocket is flying! Every space word you finish fires the engine for a big thrust. Longer words give bigger thrusts.
       </li>
       <li className="flex gap-3">
         <Rocket size={20} className="shrink-0 text-indigo-500 mt-0.5" aria-hidden="true" />
-        The fuller the tank, the faster you climb. Fly through the Sky, Clouds, Space and Satellites to reach the Moon!
+        The faster you fly, the higher you climb. Fly through the Sky, Clouds, Space and Satellites to reach the Moon!
       </li>
       <li className="flex gap-3">
-        <Fuel size={20} className="shrink-0 text-red-500 mt-0.5" aria-hidden="true" />
-        If the tank stays empty for {EMPTY_LIMIT_MS / 1000} seconds, the round ends. Keep typing to refuel!
+        <Gauge size={20} className="shrink-0 text-red-500 mt-0.5" aria-hidden="true" />
+        Between words the rocket slows down. If it stalls for {STALL_LIMIT_MS / 1000} seconds, the round ends. Keep typing to keep it flying!
       </li>
       <li className="flex gap-3">
         <Timer size={20} className="shrink-0 text-purple-500 mt-0.5" aria-hidden="true" />
