@@ -3,7 +3,7 @@ import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import { Play, Timer, Mountain, Flame } from 'lucide-react';
 import { useRocketsGame, STAGES, type RocketsRoundResult } from '../../hooks/useRocketsGame';
 import Rocket from './Rocket';
-import FuelGauge from './FuelGauge';
+import SpeedGauge from './SpeedGauge';
 
 interface Props {
   onComplete: (result: RocketsRoundResult) => void;
@@ -19,6 +19,21 @@ const SKY_BY_STAGE = [
   'from-slate-950 to-indigo-900',
   'from-black to-slate-800',
 ];
+
+// The scenery scrolls down as the rocket climbs, so the rocket reads as
+// flying; faster speed = faster scrolling. Clouds in the Sky and Clouds
+// stages, then stars (at half speed, for depth) from Space upwards.
+const SCENERY_PX_PER_KM = 6;
+const CLOUDS =
+  'radial-gradient(ellipse 60px 22px at 20% 30%, rgba(255,255,255,0.8) 60%, transparent 62%),' +
+  'radial-gradient(ellipse 80px 26px at 75% 70%, rgba(255,255,255,0.65) 60%, transparent 62%)';
+const STARS =
+  'radial-gradient(circle 1.5px at 10% 15%, white 98%, transparent),' +
+  'radial-gradient(circle 1px at 55% 45%, white 98%, transparent),' +
+  'radial-gradient(circle 1.5px at 85% 25%, white 98%, transparent),' +
+  'radial-gradient(circle 1px at 35% 85%, white 98%, transparent),' +
+  'radial-gradient(circle 1px at 70% 60%, white 98%, transparent)';
+const FIRST_SPACE_STAGE = 2;
 
 function formatTime(seconds: number): string {
   const s = Math.max(seconds, 0);
@@ -99,8 +114,32 @@ export default function RocketsGame({ onComplete, random, autoStart = false }: P
               data-stage={stage.name}
               className={`relative w-full h-72 rounded-3xl overflow-hidden border-4 border-white shadow-xl bg-linear-to-t ${SKY_BY_STAGE[game.stage]} transition-colors duration-700`}
             >
+              {/* Scenery driven by the 100ms ticks, smoothed by a matching CSS transition */}
+              <div
+                data-testid="scenery"
+                data-offset={Math.round(game.altitude * SCENERY_PX_PER_KM)}
+                aria-hidden="true"
+                className="absolute inset-0"
+              >
+                <div
+                  className={`absolute inset-0 transition-[background-position,opacity] duration-100 ease-linear ${game.stage < FIRST_SPACE_STAGE ? 'opacity-100' : 'opacity-0'}`}
+                  style={{
+                    backgroundImage: CLOUDS,
+                    backgroundSize: '320px 240px',
+                    backgroundPosition: `0 ${Math.round(game.altitude * SCENERY_PX_PER_KM)}px`,
+                  }}
+                />
+                <div
+                  className={`absolute inset-0 transition-[background-position,opacity] duration-100 ease-linear ${game.stage >= FIRST_SPACE_STAGE ? 'opacity-100' : 'opacity-0'}`}
+                  style={{
+                    backgroundImage: STARS,
+                    backgroundSize: '240px 200px',
+                    backgroundPosition: `0 ${Math.round((game.altitude * SCENERY_PX_PER_KM) / 2)}px`,
+                  }}
+                />
+              </div>
               <span className="absolute top-3 left-4 font-display text-lg text-white drop-shadow">{stage.name}</span>
-              <Rocket altitude={game.altitude} fuel={game.fuel} />
+              <Rocket speed={game.speed} thrusts={game.wordsTyped} />
 
               {/* "Stage reached!" flash, re-keyed on each new stage */}
               <AnimatePresence>
@@ -119,7 +158,7 @@ export default function RocketsGame({ onComplete, random, autoStart = false }: P
               </AnimatePresence>
             </div>
 
-            <FuelGauge fuel={game.fuel} emptyFor={game.emptyFor} />
+            <SpeedGauge speed={game.speed} stallFor={game.stallFor} />
 
             {/* Word to type, with the next one previewed */}
             <div className="flex items-baseline gap-6">

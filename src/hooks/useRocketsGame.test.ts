@@ -2,17 +2,17 @@ import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   useRocketsGame,
-  drainRate,
+  thrustFor,
   stageForAltitude,
   tierForStage,
   pickWord,
   STAGES,
-  CLIMB_KM_PER_S,
-  DRAIN_PER_S,
-  EMPTY_LIMIT_MS,
-  FUEL_MAX,
-  FUEL_PER_LETTER,
-  FUEL_START,
+  DRAG_PER_S,
+  LAUNCH_SPEED,
+  MAX_SPEED,
+  STALL_LIMIT_MS,
+  STALL_SPEED,
+  THRUST_PER_LETTER,
   TICK_MS,
 } from './useRocketsGame';
 
@@ -44,31 +44,18 @@ function startPlaying(result: Hook) {
   advance(3000); // 3-2-1 countdown
 }
 
-function fillTank(result: Hook) {
-  while (result.current.fuel < FUEL_MAX) typeWord(result);
+/** Ticks one at a time (no typing) until the rocket starts stalling. */
+function coastToStall(result: Hook) {
+  for (let i = 0; i < 200 && result.current.speed >= STALL_SPEED; i++) advance(TICK_MS);
+  expect(result.current.speed).toBeLessThan(STALL_SPEED);
 }
 
-/** Ticks one at a time (no typing) until the tank is empty. */
-function drainToEmpty(result: Hook) {
-  for (let i = 0; i < 200 && result.current.fuel > 0; i++) advance(TICK_MS);
-  expect(result.current.fuel).toBe(0);
-}
-
-/** Types two words a second so the tank stays full while the rocket climbs. */
-function climbTo(result: Hook, stage: number) {
-  for (let s = 0; s < 58 && result.current.stage < stage; s++) {
-    typeWord(result);
-    typeWord(result);
-    advance(1000);
-  }
-  expect(result.current.stage).toBe(stage);
-}
+const DRAG_PER_TICK = 1 - DRAG_PER_S * (TICK_MS / 1000);
 
 describe('rocket rules', () => {
-  it('drains 6/s, plus 10% of that per stage reached', () => {
-    expect(drainRate(0)).toBe(DRAIN_PER_S);
-    expect(drainRate(1)).toBeCloseTo(6.6);
-    expect(drainRate(4)).toBeCloseTo(8.4);
+  it('a completed word thrusts in proportion to its length', () => {
+    expect(thrustFor('SUN')).toBeCloseTo(3 * THRUST_PER_LETTER);
+    expect(thrustFor('ASTEROID')).toBeCloseTo(8 * THRUST_PER_LETTER);
   });
 
   it('maps altitude to the highest stage threshold reached', () => {
@@ -107,14 +94,15 @@ describe('useRocketsGame', () => {
     vi.useRealTimers();
   });
 
-  it('starts idle with a full 60s, the starting fuel and no words', () => {
+  it('starts idle at launch speed with a full 60s and no words', () => {
     const { result } = render();
     expect(result.current.status).toBe('idle');
     expect(result.current.timeRemaining).toBe(60);
-    expect(result.current.fuel).toBe(FUEL_START);
+    expect(result.current.speed).toBe(LAUNCH_SPEED);
     expect(result.current.altitude).toBe(0);
     expect(result.current.stage).toBe(0);
     expect(result.current.activeWord).toBeNull();
+    expect(result.current.lastThrust).toBe(0);
     expect(result.current.result).toBeNull();
   });
 
@@ -135,62 +123,46 @@ describe('useRocketsGame', () => {
     const { result } = render();
     press('s');
     act(() => result.current.start());
-    press('s');
+    type('sun');
     expect(result.current.typedIndex).toBe(0);
-    expect(result.current.fuel).toBe(FUEL_START);
-    expect(result.current.accuracy).toBe(0);
+    expect(result.current.wordsTyped).toBe(0);
+    expect(result.current.speed).toBe(LAUNCH_SPEED);
   });
 
-  it('adds exactly 4 fuel per correct letter, case-insensitively', () => {
+  it('letters alone give no thrust; completing the word does', () => {
     const { result } = render();
     startPlaying(result);
-    press('s');
-    expect(result.current.fuel).toBe(FUEL_START + FUEL_PER_LETTER);
-    expect(result.current.typedIndex).toBe(1);
-    expect(result.current.lastKeyCorrect).toBe(true);
-    press('U');
-    expect(result.current.fuel).toBe(FUEL_START + 2 * FUEL_PER_LETTER);
+    type('su');
+    expect(result.current.typedIndex).toBe(2);
+    expect(result.current.speed).toBe(LAUNCH_SPEED);
+    press('N');
+    expect(result.current.speed).toBeCloseTo(LAUNCH_SPEED + thrustFor('SUN'));
+    expect(result.current.lastThrust).toBeCloseTo(thrustFor('SUN'));
+    expect(result.current.wordsTyped).toBe(1);
   });
 
-  it('caps fuel at 100', () => {
+  it('caps speed at MAX_SPEED', () => {
     const { result } = render();
     startPlaying(result);
-    for (let i = 0; i < 6; i++) typeWord(result); // ~21 letters, well over the 15 needed
-    expect(result.current.fuel).toBe(FUEL_MAX);
+    for (let i = 0; i < 8; i++) typeWord(result); // ~28 letters, ~31 km/s of thrust
+    expect(result.current.speed).toBe(MAX_SPEED);
   });
 
-  it('drains at the first-stage rate each tick and climbs in proportion to fuel', () => {
+  it('drag slows the rocket between words, and altitude grows by speed x time', () => {
     const { result } = render();
     startPlaying(result);
     advance(TICK_MS);
-    const fuelAfter = FUEL_START - DRAIN_PER_S * 0.1;
-    expect(result.current.fuel).toBeCloseTo(fuelAfter);
-    expect(result.current.altitude).toBeCloseTo(CLIMB_KM_PER_S * (fuelAfter / 100) * 0.1);
+    const speed = LAUNCH_SPEED * DRAG_PER_TICK;
+    expect(result.current.speed).toBeCloseTo(speed);
+    expect(result.current.altitude).toBeCloseTo(speed * 0.1);
 
-    // A fuller tank climbs faster.
-    fillTank(result);
-    const before = result.current.altitude;
+    // Faster rocket, faster climb.
+    typeWord(result);
+    typeWord(result);
+    const before = { speed: result.current.speed, altitude: result.current.altitude };
     advance(TICK_MS);
-    expect(result.current.altitude - before).toBeCloseTo(CLIMB_KM_PER_S * ((FUEL_MAX - DRAIN_PER_S * 0.1) / 100) * 0.1);
-  });
-
-  it('never lets fuel go negative, and an empty tank does not climb', () => {
-    const { result } = render();
-    startPlaying(result);
-    drainToEmpty(result);
-    const altitude = result.current.altitude;
-    advance(1000);
-    expect(result.current.fuel).toBe(0);
-    expect(result.current.altitude).toBe(altitude);
-  });
-
-  it('drains faster at higher stages', () => {
-    const { result } = render();
-    startPlaying(result);
-    climbTo(result, 1);
-    const before = result.current.fuel;
-    advance(TICK_MS);
-    expect(before - result.current.fuel).toBeCloseTo(drainRate(1) * 0.1);
+    expect(result.current.speed).toBeCloseTo(before.speed * DRAG_PER_TICK);
+    expect(result.current.altitude - before.altitude).toBeCloseTo(before.speed * DRAG_PER_TICK * 0.1);
   });
 
   it('passes each stage exactly once on the way to the Moon, with longer words higher up', () => {
@@ -226,35 +198,36 @@ describe('useRocketsGame', () => {
     expect(result.current.streak).toBe(1);
   });
 
-  it('a wrong key adds no fuel, marks the letter wrong and resets the streak without failing the word', () => {
+  it('a wrong key gives no thrust, marks the letter wrong and resets the streak without failing the word', () => {
     const { result } = render();
     startPlaying(result);
     type('SUN');
     expect(result.current.streak).toBe(1);
-    const fuel = result.current.fuel;
+    const speed = result.current.speed;
 
     press('x'); // MOON expects M
     expect(result.current.lastKeyCorrect).toBe(false);
     expect(result.current.typedIndex).toBe(0);
-    expect(result.current.fuel).toBe(fuel);
+    expect(result.current.speed).toBe(speed);
     expect(result.current.streak).toBe(0);
     expect(result.current.activeWord?.word).toBe('MOON');
 
-    type('MOON'); // the word still completes, but it had a mistake
+    type('MOON'); // the word still completes and thrusts, but it had a mistake
+    expect(result.current.speed).toBeCloseTo(speed + thrustFor('MOON'));
     expect(result.current.wordsTyped).toBe(2);
     expect(result.current.streak).toBe(0);
     expect(result.current.bestStreak).toBe(1);
     expect(result.current.accuracy).toBe(88); // 7 of 8
   });
 
-  it('ends the round after 5 continuous seconds at 0 fuel', () => {
+  it('ends the round after 5 continuous seconds below stall speed', () => {
     const { result } = render();
     startPlaying(result);
-    drainToEmpty(result);
-    expect(result.current.emptyFor).toBe(TICK_MS);
+    coastToStall(result);
+    expect(result.current.stallFor).toBe(TICK_MS);
 
-    advance(EMPTY_LIMIT_MS - 2 * TICK_MS);
-    expect(result.current.emptyFor).toBe(EMPTY_LIMIT_MS - TICK_MS);
+    advance(STALL_LIMIT_MS - 2 * TICK_MS);
+    expect(result.current.stallFor).toBe(STALL_LIMIT_MS - TICK_MS);
     expect(result.current.status).toBe('playing');
 
     advance(TICK_MS);
@@ -265,28 +238,28 @@ describe('useRocketsGame', () => {
       bestStreak: 0,
       wordsTyped: 0,
       stage: 0,
-      endedBy: 'fuel',
+      endedBy: 'stall',
     });
   });
 
-  it('a correct letter at 4.9s empty refuels and resets the empty-tank countdown', () => {
+  it('a word completed at 4.9s of stalling thrusts and resets the stall timer', () => {
     const { result } = render();
     startPlaying(result);
-    drainToEmpty(result);
-    advance(EMPTY_LIMIT_MS - 2 * TICK_MS);
-    expect(result.current.emptyFor).toBe(4900);
+    coastToStall(result);
+    advance(STALL_LIMIT_MS - 2 * TICK_MS);
+    expect(result.current.stallFor).toBe(4900);
 
-    press('s');
-    expect(result.current.fuel).toBe(FUEL_PER_LETTER);
-    expect(result.current.emptyFor).toBe(0);
+    type('SUN');
+    expect(result.current.speed).toBeGreaterThanOrEqual(STALL_SPEED);
+    expect(result.current.stallFor).toBe(0);
 
-    // 4 fuel lasts 7 ticks, then a fresh 5s countdown starts from zero.
-    advance(4000);
+    // It coasts for a while, then a fresh 5s stall countdown starts from zero.
+    advance(STALL_LIMIT_MS);
     expect(result.current.status).toBe('playing');
-    expect(result.current.emptyFor).toBe(4000 - 6 * TICK_MS);
-    advance(EMPTY_LIMIT_MS - result.current.emptyFor);
+    coastToStall(result);
+    advance(STALL_LIMIT_MS - TICK_MS);
     expect(result.current.status).toBe('complete');
-    expect(result.current.result?.endedBy).toBe('fuel');
+    expect(result.current.result?.endedBy).toBe('stall');
   });
 
   it('otherwise ends at 60s with the round result, and ignores keys afterwards', () => {
@@ -320,7 +293,7 @@ describe('useRocketsGame', () => {
     advance(1000);
     act(() => result.current.reset());
     expect(result.current.status).toBe('idle');
-    expect(result.current.fuel).toBe(FUEL_START);
+    expect(result.current.speed).toBe(LAUNCH_SPEED);
     expect(result.current.altitude).toBe(0);
     expect(result.current.wordsTyped).toBe(0);
     expect(result.current.activeWord).toBeNull();

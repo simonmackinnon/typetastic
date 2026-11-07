@@ -1,45 +1,48 @@
 import { motion } from 'framer-motion';
 import { Rocket as RocketIcon } from 'lucide-react';
-import { STAGES } from '../../hooks/useRocketsGame';
+import { MAX_SPEED, STALL_SPEED } from '../../hooks/useRocketsGame';
 
 interface Props {
-  altitude: number; // km
-  fuel: number;     // 0-100
+  speed: number;   // km/s
+  thrusts: number; // completed words so far; each one fires a thrust
 }
 
-const MOON_KM = STAGES[STAGES.length - 1].km;
-
-export default function Rocket({ altitude, fuel }: Props) {
-  // Climb from near the ground to near the top of the sky as the rocket nears the Moon.
-  const height = 8 + 70 * Math.min(altitude / MOON_KM, 1);
-  const empty = fuel === 0;
+// The rocket stays mid-sky, always in flight; the scenery scrolls past it.
+// Its flame follows speed through a CSS transition (the hook ticks every
+// 100ms, and starting a Framer animation per tick stalled Playwright's fake
+// clock in TYP-20). Framer is only used for the one-off thrust on each word.
+export default function Rocket({ speed, thrusts }: Props) {
+  const stalling = speed < STALL_SPEED;
 
   return (
-    // Height and flame are driven by the hook's 100ms ticks; matching linear CSS
-    // transitions keep them smooth between ticks (as the Post Office belt does).
-    // Starting a Framer animation on every tick was ~12x slower and could stall
-    // Playwright's fake clock, so Framer is kept for the one-off effects below.
     <div
       data-testid="rocket"
-      data-engine={empty ? 'sputtering' : 'burning'}
-      className="absolute left-1/2 -ml-8 transition-[bottom] duration-100 ease-linear"
-      style={{ bottom: `${height}%` }}
+      data-engine={stalling ? 'stalling' : 'burning'}
+      data-thrusts={thrusts}
+      className="absolute left-1/2 bottom-[30%] -ml-8"
     >
-      {/* Lift-off on mount; a wobble each time the engine cuts out */}
+      {/* Re-keyed on every completed word, so the thrust replays each time */}
       <motion.div
-        key={empty ? 'sputtering' : 'burning'}
+        key={thrusts}
+        data-testid={thrusts > 0 ? 'thrust' : undefined}
         className="flex flex-col items-center"
-        initial={empty ? { rotate: 0 } : { y: 24, opacity: 0 }}
-        animate={empty ? { rotate: [0, -8, 8, -4, 0] } : { y: 0, opacity: 1 }}
-        transition={{ duration: 0.5 }}
+        initial={false}
+        animate={thrusts > 0 ? { y: [0, -28, 0] } : { y: 0 }}
+        transition={{ duration: 0.45, ease: 'easeOut' }}
       >
         <RocketIcon size={64} className="-rotate-45 text-white drop-shadow-lg" aria-hidden="true" />
-        {/* Flame size follows fuel; a sputtering engine flickers instead */}
-        <div
+        <motion.div
           aria-hidden="true"
-          className={`w-4 rounded-b-full bg-linear-to-b from-yellow-300 via-orange-500 to-red-500 transition-[height] duration-100 ease-linear ${empty ? 'animate-pulse opacity-40' : ''}`}
-          style={{ height: empty ? 4 : 8 + fuel * 0.4 }}
-        />
+          className="origin-top"
+          initial={false}
+          animate={thrusts > 0 ? { scaleY: [1, 2.4, 1], scaleX: [1, 1.6, 1] } : { scaleY: 1 }}
+          transition={{ duration: 0.45, ease: 'easeOut' }}
+        >
+          <div
+            className={`w-4 rounded-b-full bg-linear-to-b from-yellow-300 via-orange-500 to-red-500 transition-[height] duration-100 ease-linear ${stalling ? 'animate-pulse opacity-40' : ''}`}
+            style={{ height: 6 + (34 * Math.min(speed, MAX_SPEED)) / MAX_SPEED }}
+          />
+        </motion.div>
       </motion.div>
     </div>
   );

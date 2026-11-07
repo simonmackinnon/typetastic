@@ -1,7 +1,7 @@
 import { render, screen, act, fireEvent } from '@testing-library/react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import RocketsGame from './RocketsGame';
-import { FUEL_START, FUEL_PER_LETTER, DRAIN_PER_S, ROUND_MS } from '../../hooks/useRocketsGame';
+import { LAUNCH_SPEED, ROUND_MS, thrustFor } from '../../hooks/useRocketsGame';
 
 // random() === 0 -> the round opens with SUN, previewing MOON.
 function renderGame(onComplete = vi.fn()) {
@@ -38,7 +38,9 @@ function wordStates() {
   );
 }
 
-const fuel = () => Number(screen.getByTestId('fuel-gauge').getAttribute('aria-valuenow'));
+const speed = () => Number(screen.getByRole('meter', { name: 'Speed' }).getAttribute('aria-valuenow'));
+const sceneryOffset = () => Number(screen.getByTestId('scenery').getAttribute('data-offset'));
+const stallSeconds = () => Number(screen.getByTestId('stall-warning').textContent!.replace(/\D/g, ''));
 
 describe('RocketsGame', () => {
   beforeEach(() => {
@@ -63,16 +65,18 @@ describe('RocketsGame', () => {
     expect(screen.getByTestId('active-word')).toHaveAttribute('data-word', 'SUN');
   });
 
-  it('renders the sky, rocket, HUD, fuel gauge and words once playing', () => {
+  it('renders the flying rocket, scenery, HUD, speed gauge and words once playing', () => {
     renderGame();
     startRound();
     expect(screen.getByTestId('sky')).toHaveAttribute('data-stage', 'Sky');
+    expect(screen.getByTestId('scenery')).toBeInTheDocument();
     expect(screen.getByTestId('rocket')).toHaveAttribute('data-engine', 'burning');
+    expect(screen.getByTestId('rocket')).toHaveAttribute('data-thrusts', '0');
+    expect(screen.queryByTestId('thrust')).not.toBeInTheDocument();
     expect(screen.getByTestId('hud-time')).toHaveTextContent('1:00');
     expect(screen.getByTestId('hud-km')).toHaveTextContent('0 km');
     expect(screen.getByTestId('hud-km')).toHaveAccessibleName('Altitude 0 kilometres');
-    expect(screen.getByTestId('hud-streak')).toHaveTextContent('0');
-    expect(screen.getByRole('meter', { name: 'Fuel' })).toHaveAttribute('aria-valuenow', String(FUEL_START));
+    expect(speed()).toBe(LAUNCH_SPEED);
     expect(screen.getByTestId('active-word')).toHaveAttribute('data-word', 'SUN');
     expect(screen.getByTestId('next-word')).toHaveTextContent('MOON');
   });
@@ -89,6 +93,23 @@ describe('RocketsGame', () => {
     expect(screen.getByTestId('hud-streak')).toHaveTextContent('1');
   });
 
+  it('fires a thrust each time a word is completed, and not for single letters', () => {
+    renderGame();
+    startRound();
+    type('su');
+    expect(screen.queryByTestId('thrust')).not.toBeInTheDocument();
+    expect(speed()).toBe(LAUNCH_SPEED);
+
+    press('n');
+    expect(screen.getByTestId('thrust')).toBeInTheDocument();
+    expect(screen.getByTestId('rocket')).toHaveAttribute('data-thrusts', '1');
+    expect(speed()).toBeCloseTo(LAUNCH_SPEED + thrustFor('SUN'), 1);
+
+    type('MOON');
+    expect(screen.getByTestId('rocket')).toHaveAttribute('data-thrusts', '2');
+    expect(speed()).toBeCloseTo(LAUNCH_SPEED + thrustFor('SUN') + thrustFor('MOON'), 1);
+  });
+
   it('a wrong key marks the letter and shakes the word, without failing it', () => {
     renderGame();
     startRound();
@@ -96,19 +117,24 @@ describe('RocketsGame', () => {
     expect(wordStates()).toEqual(['wrong', 'pending', 'pending']);
     expect(screen.getByTestId('active-word')).toHaveClass('animate-shake');
     expect(screen.getByTestId('active-word')).toHaveAttribute('data-word', 'SUN');
+    expect(screen.getByTestId('rocket')).toHaveAttribute('data-thrusts', '0');
     type('SUN');
     expect(screen.getByTestId('active-word')).toHaveAttribute('data-word', 'MOON');
     expect(screen.getByTestId('hud-streak')).toHaveTextContent('0');
   });
 
-  it('the fuel gauge rises with correct letters and drains over time', () => {
+  it('the scenery scrolls past faster when the rocket is going faster', () => {
     renderGame();
     startRound();
-    press('s');
-    expect(fuel()).toBe(FUEL_START + FUEL_PER_LETTER);
+    let before = sceneryOffset();
     advance(1000);
-    expect(fuel()).toBe(FUEL_START + FUEL_PER_LETTER - DRAIN_PER_S);
-    expect(Number(screen.getByTestId('hud-km').textContent!.replace(/\D/g, ''))).toBeGreaterThan(0);
+    const slow = sceneryOffset() - before;
+    expect(slow).toBeGreaterThan(0);
+
+    for (let i = 0; i < 4; i++) typeActiveWord();
+    before = sceneryOffset();
+    advance(1000);
+    expect(sceneryOffset() - before).toBeGreaterThan(2 * slow);
   });
 
   it('flashes the new stage when the rocket reaches the Clouds', () => {
@@ -123,28 +149,29 @@ describe('RocketsGame', () => {
     expect(screen.getByTestId('stage-flash')).toHaveTextContent('Clouds reached!');
   });
 
-  it('shows a "Refuel! N s" countdown with an empty tank', () => {
+  it('shows a "Stalling! N s" countdown when the rocket slows right down', () => {
     renderGame();
     startRound();
-    expect(screen.queryByTestId('refuel-warning')).not.toBeInTheDocument();
-    advance(7000); // the tank empties at 6.7s
-    expect(fuel()).toBe(0);
-    expect(screen.getByTestId('rocket')).toHaveAttribute('data-engine', 'sputtering');
-    expect(screen.getByTestId('refuel-warning')).toHaveTextContent('Refuel! 5 s');
+    expect(screen.queryByTestId('stall-warning')).not.toBeInTheDocument();
+    advance(7000); // coasting from launch speed, it stalls ~6.4s in
+    expect(screen.getByTestId('rocket')).toHaveAttribute('data-engine', 'stalling');
+    expect(screen.getByTestId('stall-warning')).toHaveTextContent(/^Stalling! \d s$/);
+    const first = stallSeconds();
     advance(2000);
-    expect(screen.getByTestId('refuel-warning')).toHaveTextContent('Refuel! 3 s');
+    expect(stallSeconds()).toBe(first - 2);
 
-    press('s'); // refuels
-    expect(screen.queryByTestId('refuel-warning')).not.toBeInTheDocument();
+    type('SUN'); // a thrust gets it flying again
+    expect(screen.queryByTestId('stall-warning')).not.toBeInTheDocument();
+    expect(screen.getByTestId('rocket')).toHaveAttribute('data-engine', 'burning');
   });
 
-  it('calls onComplete with endedBy "fuel" after 5s on an empty tank', () => {
+  it('calls onComplete with endedBy "stall" after 5s of stalling', () => {
     const onComplete = renderGame();
     startRound();
-    advance(11_600); // empty at 6.7s, plus 5s
+    advance(12_000); // stalls ~6.4s in, plus 5s
     advance(600);    // results delay
     expect(onComplete).toHaveBeenCalledTimes(1);
-    expect(onComplete).toHaveBeenCalledWith(expect.objectContaining({ endedBy: 'fuel', wordsTyped: 0 }));
+    expect(onComplete).toHaveBeenCalledWith(expect.objectContaining({ endedBy: 'stall', wordsTyped: 0 }));
   });
 
   it('calls onComplete with endedBy "time" when the 60s run out', () => {

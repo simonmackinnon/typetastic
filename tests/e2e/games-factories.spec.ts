@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { gotoGame, mockApi, signIn, startRound as startGameRound } from './helpers/games';
+import { gotoGame, mockApi, pauseClock, runUntilResults, signIn, startRound as startGameRound } from './helpers/games';
 
 // The round is 60s long; Playwright's fake clock lets us fast-forward through
 // the countdown and the round instead of waiting in real time.
@@ -65,12 +65,13 @@ test.describe('Factories game', () => {
     await page.clock.install();
     await gotoGame(page, GAME_ID);
     await startRound(page);
+    await pauseClock(page); // the loop below must not drift on a slow runner
     // Build the front toy every 2s: orders arrive every 4-6s, so none are missed.
     for (let s = 0; s < 30; s++) {
       if (await page.getByTestId('active-part').count()) await buildFrontOrder(page);
       await page.clock.runFor(2_000);
     }
-    await page.clock.runFor(1_000);
+    await runUntilResults(page);
 
     await expect(page.getByText(/factories round complete/i)).toBeVisible();
     await expect(page.getByTestId('result-score')).not.toContainText(/^\s*0\s*$/);

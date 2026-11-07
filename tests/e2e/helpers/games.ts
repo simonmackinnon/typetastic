@@ -14,6 +14,34 @@ export async function gotoGame(page: Page, gameId: string) {
 }
 
 /**
+ * Stops the installed fake clock from also running in real time, so game time
+ * only moves when a test calls page.clock.runFor(). Without this, a long typed
+ * round drifts on a slow CI runner (real time spent typing adds up) and can end
+ * before the test's loop does.
+ *
+ * Call it once the round is playing: the games start their timers in React
+ * effects, which run just after a render, so pausing before Start can leave a
+ * runFor() with no timers to fire yet.
+ */
+export async function pauseClock(page: Page) {
+  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 100));
+}
+
+/**
+ * With the clock paused, steps it forward until the results screen shows. The
+ * results appear via a short timer that is also set in an effect, so a single
+ * runFor() can race it.
+ */
+export async function runUntilResults(page: Page) {
+  await expect
+    .poll(async () => {
+      await page.clock.runFor(500);
+      return page.getByText(/round complete/i).isVisible();
+    })
+    .toBe(true);
+}
+
+/**
  * Presses Start and fast-forwards Playwright's fake clock through the 3-2-1
  * countdown and the first game tick, then waits for `readyTestId` (the element
  * a player types at first) to appear. Needs page.clock.install() beforehand.

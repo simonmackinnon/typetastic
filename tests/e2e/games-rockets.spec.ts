@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { gotoGame, mockApi, signIn, startRound as startGameRound } from './helpers/games';
+import { gotoGame, mockApi, pauseClock, runUntilResults, signIn, startRound as startGameRound } from './helpers/games';
 
 // The round is 60s long; Playwright's fake clock lets us fast-forward through
 // the countdown and the round instead of waiting in real time.
@@ -13,7 +13,7 @@ async function typeActiveWord(page: Page) {
   await page.keyboard.type(word!);
 }
 
-const fuel = async (page: Page) => Number(await page.getByRole('meter', { name: 'Fuel' }).getAttribute('aria-valuenow'));
+const speed = async (page: Page) => Number(await page.getByRole('meter', { name: 'Speed' }).getAttribute('aria-valuenow'));
 
 test.describe('Rockets game', () => {
   test.beforeEach(async ({ isMobile }) => {
@@ -42,15 +42,16 @@ test.describe('Rockets game', () => {
     await expect(page.getByTestId('hud-time')).toContainText('1:00');
   });
 
-  test('typing the shown word adds fuel and the rocket climbs', async ({ page }) => {
+  test('typing the shown word fires a thrust and the rocket climbs', async ({ page }) => {
     await page.clock.install();
     await gotoGame(page, GAME_ID);
     await startRound(page);
 
-    const before = await fuel(page);
+    const before = await speed(page);
     const word = await page.getByTestId('active-word').getAttribute('data-word');
     await typeActiveWord(page);
-    await expect.poll(() => fuel(page)).toBeGreaterThan(before);
+    await expect.poll(() => speed(page)).toBeGreaterThan(before);
+    await expect(page.getByTestId('rocket')).toHaveAttribute('data-thrusts', '1');
     await expect(page.getByTestId('active-word')).not.toHaveAttribute('data-word', word!);
     await expect(page.getByTestId('hud-streak')).toContainText('1');
 
@@ -62,34 +63,35 @@ test.describe('Rockets game', () => {
     await page.clock.install();
     await gotoGame(page, GAME_ID);
     await startRound(page);
-    // Two words every 2s keeps the tank from running dry.
+    await pauseClock(page); // the loop below must not drift on a slow runner
+    // Two words every 2s keeps the rocket well above stall speed.
     for (let s = 0; s < 30; s++) {
       await typeActiveWord(page);
       await typeActiveWord(page);
       await page.clock.runFor(2_000);
     }
-    await page.clock.runFor(1_000);
+    await runUntilResults(page);
 
     await expect(page.getByText(/rockets round complete/i)).toBeVisible();
     await expect(page.getByTestId('result-score')).toContainText('km');
     await expect(page.getByTestId('result-words')).toContainText('60');
     await expect(page.getByTestId('result-accuracy')).toContainText('100%');
-    await expect(page.getByRole('heading', { name: 'Out of fuel!' })).toBeHidden();
+    await expect(page.getByRole('heading', { name: 'Stalled!' })).toBeHidden();
 
     await page.getByRole('button', { name: /back to games/i }).click();
     await expect(page).toHaveURL(/\/games$/);
   });
 
-  test('an empty tank shows the Refuel! countdown, then ends the round early', async ({ page }) => {
+  test('an idle rocket shows the Stalling! countdown, then ends the round early', async ({ page }) => {
     await page.clock.install();
     await gotoGame(page, GAME_ID);
     await startRound(page);
 
-    await page.clock.runFor(8_000); // the tank empties ~6.7s in
-    await expect(page.getByTestId('refuel-warning')).toContainText(/Refuel! \d s/);
+    await page.clock.runFor(8_000); // coasting from launch speed, it stalls ~6.4s in
+    await expect(page.getByTestId('stall-warning')).toContainText(/Stalling! \d s/);
 
     await page.clock.runFor(5_000);
-    await expect(page.getByRole('heading', { name: 'Out of fuel!' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Stalled!' })).toBeVisible();
     await expect(page.getByText(/rockets round complete/i)).toBeVisible();
   });
 });
@@ -109,7 +111,7 @@ test.describe('Rockets game: saving scores', () => {
 
     await startRound(page);
     await typeActiveWord(page);
-    await page.clock.runFor(20_000); // runs out of fuel and ends early
+    await page.clock.runFor(20_000); // stalls and ends early
 
     await expect(page.getByTestId('personal-best')).toContainText('First score saved');
     await expect.poll(() => api.calls).toContain('PUT /me/games/rockets/score');

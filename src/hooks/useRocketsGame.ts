@@ -7,13 +7,13 @@ import {
 } from './gameShared';
 
 export { ROUND_MS, TICK_MS };
-export const FUEL_START = 40;           // % in the tank when the round starts
-export const FUEL_MAX = 100;
-export const FUEL_PER_LETTER = 4;       // % added per correct letter
-export const DRAIN_PER_S = 6;           // % drained per second at the first stage...
-export const DRAIN_STAGE_STEP = 0.1;    // ...plus 10% of that for every stage reached
-export const CLIMB_KM_PER_S = 10;       // climb speed with a full tank; scales with fuel
-export const EMPTY_LIMIT_MS = 5_000;    // continuous time at 0 fuel that ends the round
+// Each completed word fires a thrust; drag slows the rocket between words (TYP-26).
+export const THRUST_PER_LETTER = 1.1;  // km/s added per letter of a completed word
+export const MAX_SPEED = 15;           // km/s; caps a round at ~800 km, under the API's 1,000 km limit
+export const DRAG_PER_S = 0.25;        // fraction of its speed the rocket loses per second
+export const LAUNCH_SPEED = 5;         // km/s at the start of the round
+export const STALL_SPEED = 1;          // below this the rocket is stalling...
+export const STALL_LIMIT_MS = 5_000;   // ...and this long stalling ends the round
 
 // Altitude thresholds, in km. The stage index is what the hook reports.
 export const STAGES = [
@@ -25,7 +25,7 @@ export const STAGES = [
 ] as const;
 
 // Word tiers on offer at each stage; one is picked at random. Longer words
-// appear as the rocket climbs.
+// appear as the rocket climbs (and give bigger thrusts).
 export const TIER_MIX: readonly (readonly RocketWordTier[])[] = [
   [1],
   [1, 2],
@@ -34,7 +34,7 @@ export const TIER_MIX: readonly (readonly RocketWordTier[])[] = [
   [2, 3, 3],
 ];
 
-export type RocketsEndReason = 'time' | 'fuel';
+export type RocketsEndReason = 'time' | 'stall';
 
 export interface RocketsRoundResult extends GameRoundResult {
   score: number;        // altitude reached, whole km
@@ -49,10 +49,10 @@ interface RocketsState {
   status: GameStatus;
   countdown: number;
   elapsed: number;
-  fuel: number;
+  speed: number;           // km/s
   altitude: number;
   stage: number;
-  emptyFor: number;        // ms continuously at 0 fuel
+  stallFor: number;        // ms continuously below STALL_SPEED
   activeWord: RocketWord | null;
   nextWord: RocketWord | null;
   typedIndex: number;      // progress into the active word
@@ -60,6 +60,7 @@ interface RocketsState {
   streak: number;
   bestStreak: number;
   wordsTyped: number;
+  lastThrust: number;      // km/s added by the last completed word (0 before any)
   correctKeystrokes: number;
   totalKeystrokes: number;
   lastKeyCorrect: boolean | null;
@@ -80,10 +81,10 @@ function init(): RocketsState {
     status: 'idle',
     countdown: COUNTDOWN_FROM,
     elapsed: 0,
-    fuel: FUEL_START,
+    speed: LAUNCH_SPEED,
     altitude: 0,
     stage: 0,
-    emptyFor: 0,
+    stallFor: 0,
     activeWord: null,
     nextWord: null,
     typedIndex: 0,
@@ -91,6 +92,7 @@ function init(): RocketsState {
     streak: 0,
     bestStreak: 0,
     wordsTyped: 0,
+    lastThrust: 0,
     correctKeystrokes: 0,
     totalKeystrokes: 0,
     lastKeyCorrect: null,
@@ -98,9 +100,9 @@ function init(): RocketsState {
   };
 }
 
-/** Fuel drained per second at a stage. */
-export function drainRate(stage: number): number {
-  return DRAIN_PER_S * (1 + DRAIN_STAGE_STEP * stage);
+/** Speed added by completing a word: bigger words give bigger kicks. */
+export function thrustFor(word: string): number {
+  return THRUST_PER_LETTER * word.length;
 }
 
 /** The highest stage whose threshold the altitude has reached. */
@@ -126,12 +128,12 @@ export function pickWord(stage: number, [tierRand, wordRand]: Rand, avoid?: Rock
 function tick(state: RocketsState): RocketsState {
   const elapsed = state.elapsed + TICK_MS;
   const seconds = TICK_MS / 1000;
-  const fuel = Math.max(0, state.fuel - drainRate(state.stage) * seconds);
-  const altitude = state.altitude + CLIMB_KM_PER_S * (fuel / FUEL_MAX) * seconds;
-  const emptyFor = fuel === 0 ? state.emptyFor + TICK_MS : 0;
-  const next = { ...state, elapsed, fuel, altitude, stage: stageForAltitude(altitude), emptyFor };
+  const speed = state.speed * (1 - DRAG_PER_S * seconds);
+  const altitude = state.altitude + speed * seconds;
+  const stallFor = speed < STALL_SPEED ? state.stallFor + TICK_MS : 0;
+  const next = { ...state, elapsed, speed, altitude, stage: stageForAltitude(altitude), stallFor };
 
-  if (emptyFor >= EMPTY_LIMIT_MS) return { ...next, status: 'complete', endedBy: 'fuel' };
+  if (stallFor >= STALL_LIMIT_MS) return { ...next, status: 'complete', endedBy: 'stall' };
   if (elapsed >= ROUND_MS) return { ...next, status: 'complete', endedBy: 'time' };
   return next;
 }
@@ -153,19 +155,22 @@ function keystroke(state: RocketsState, char: string, rand: Rand): RocketsState 
   const typedIndex = state.typedIndex + 1;
   const base = {
     ...state,
-    fuel: Math.min(FUEL_MAX, state.fuel + FUEL_PER_LETTER),
-    emptyFor: 0,
     correctKeystrokes: state.correctKeystrokes + 1,
     totalKeystrokes: state.totalKeystrokes + 1,
     lastKeyCorrect: true,
   };
   if (typedIndex < active.word.length) return { ...base, typedIndex };
 
-  // Word finished: the preview moves in and a new preview is picked.
+  // Word finished: thrust! The preview moves in and a new preview is picked.
+  const thrust = thrustFor(active.word);
+  const speed = Math.min(MAX_SPEED, state.speed + thrust);
   const streak = state.wordHadMistake ? 0 : state.streak + 1;
   const activeWord = state.nextWord ?? pickWord(state.stage, rand, active);
   return {
     ...base,
+    speed,
+    stallFor: speed < STALL_SPEED ? state.stallFor : 0,
+    lastThrust: thrust,
     activeWord,
     nextWord: pickWord(state.stage, rand, activeWord),
     typedIndex: 0,
@@ -212,7 +217,7 @@ export interface UseRocketsGame {
   status: GameStatus;
   countdown: number;
   timeRemaining: number; // whole seconds
-  fuel: number;          // 0-100
+  speed: number;         // km/s
   altitude: number;      // km
   stage: number;         // index into STAGES
   activeWord: RocketWord | null;
@@ -221,9 +226,10 @@ export interface UseRocketsGame {
   lastKeyCorrect: boolean | null;
   streak: number;
   bestStreak: number;
-  wordsTyped: number;
+  wordsTyped: number;    // also counts thrusts: each completed word fires one
+  lastThrust: number;    // km/s added by the last thrust
   accuracy: number;
-  emptyFor: number;      // ms continuously at 0 fuel
+  stallFor: number;      // ms continuously below STALL_SPEED
   start: () => void;
   reset: () => void;
   recordKeystroke: (char: string) => void;
@@ -269,7 +275,7 @@ export function useRocketsGame({ random = Math.random }: UseRocketsGameOptions =
     status: state.status,
     countdown: state.countdown,
     timeRemaining: Math.max(0, Math.ceil((ROUND_MS - state.elapsed) / 1000)),
-    fuel: state.fuel,
+    speed: state.speed,
     altitude: state.altitude,
     stage: state.stage,
     activeWord: state.activeWord,
@@ -279,8 +285,9 @@ export function useRocketsGame({ random = Math.random }: UseRocketsGameOptions =
     streak: state.streak,
     bestStreak: state.bestStreak,
     wordsTyped: state.wordsTyped,
+    lastThrust: state.lastThrust,
     accuracy,
-    emptyFor: state.emptyFor,
+    stallFor: state.stallFor,
     start,
     reset,
     recordKeystroke,
